@@ -2,12 +2,11 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { Plus, Search, RotateCcw, Pencil, Trash2, Download, Users, FileText, ListChecks } from "lucide-react"
+import { Plus, Search, RotateCcw, Pencil, Trash2, Download, FileText } from "lucide-react"
 import { AdminLayout } from "@/components/admin-layout"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Checkbox } from "@/components/ui/checkbox"
 import {
   Table,
   TableBody,
@@ -58,26 +57,14 @@ import {
   getProjectById,
   getVersionById,
   getVersionsByProjectId,
-  getProjectMembers,
-  getIterationRequirementCount,
-  getARDetailsByIterationId,
-  mockARDetails,
+  getIterationRequirementCount
 } from "@/lib/mock-data"
-import type { Iteration, ProjectMember, ARRequirementDetail } from "@/lib/types"
+import type { Iteration } from "@/lib/types"
 
 const statusConfig: Record<string, { label: string; color: string }> = {
   "进行中": { label: "进行中", color: "bg-blue-100 text-blue-700" },
   "已完成": { label: "已完成", color: "bg-green-100 text-green-700" },
   "规划中": { label: "规划中", color: "bg-gray-100 text-gray-700" },
-}
-
-const roleColors: Record<string, string> = {
-  "负责人": "bg-red-100 text-red-700",
-  "项目经理": "bg-blue-100 text-blue-700",
-  "前端开发": "bg-green-100 text-green-700",
-  "后端开发": "bg-purple-100 text-purple-700",
-  "测试工程师": "bg-orange-100 text-orange-700",
-  "产品经理": "bg-cyan-100 text-cyan-700",
 }
 
 export default function IterationsPage() {
@@ -87,14 +74,7 @@ export default function IterationsPage() {
   const [projectFilter, setProjectFilter] = React.useState("all")
   const [formOpen, setFormOpen] = React.useState(false)
   const [deleteOpen, setDeleteOpen] = React.useState(false)
-  const [membersOpen, setMembersOpen] = React.useState(false)
-  const [requirementsOpen, setRequirementsOpen] = React.useState(false)
   const [selectedIteration, setSelectedIteration] = React.useState<Iteration | null>(null)
-  const [selectedMembers, setSelectedMembers] = React.useState<ProjectMember[]>([])
-  const [selectedProjectName, setSelectedProjectName] = React.useState("")
-  const [iterationArs, setIterationArs] = React.useState<ARRequirementDetail[]>([])
-  const [allArs, setAllArs] = React.useState<ARRequirementDetail[]>([])
-  const [selectedArIds, setSelectedArIds] = React.useState<Set<string>>(new Set())
   const [isEdit, setIsEdit] = React.useState(false)
   const projects = getAllProjects()
   const allVersions = getAllVersions()
@@ -122,7 +102,6 @@ export default function IterationsPage() {
 
   React.useEffect(() => {
     setIterations(getAllIterations())
-    setAllArs(mockARDetails)
   }, [])
 
   // 筛选
@@ -177,37 +156,6 @@ export default function IterationsPage() {
     setDeleteOpen(true)
   }
 
-  const handleMembersClick = (iteration: Iteration) => {
-    const project = getProjectById(iteration.projectId)
-    setSelectedIteration(iteration)
-    setSelectedProjectName(project?.name || "")
-    setSelectedMembers(getProjectMembers(iteration.projectId))
-    setMembersOpen(true)
-  }
-
-  const handleRequirementsClick = (iteration: Iteration) => {
-    setSelectedIteration(iteration)
-    const ars = getARDetailsByIterationId(iteration.id)
-    setIterationArs(ars)
-    setSelectedArIds(new Set(ars.map(ar => ar.id)))
-    setRequirementsOpen(true)
-  }
-
-  const handleArToggle = (arId: string) => {
-    const newSelected = new Set(selectedArIds)
-    if (newSelected.has(arId)) {
-      newSelected.delete(arId)
-    } else {
-      newSelected.add(arId)
-    }
-    setSelectedArIds(newSelected)
-  }
-
-  const handleSaveRequirements = () => {
-    console.log("保存迭代需求关联:", selectedIteration?.id, Array.from(selectedArIds))
-    setRequirementsOpen(false)
-  }
-
   const handleSave = () => {
     console.log("保存迭代:", formData)
     setFormOpen(false)
@@ -219,11 +167,10 @@ export default function IterationsPage() {
   }
 
   const handleExport = () => {
-    const headers = ["迭代名称", "所属项目", "所属产品", "所属版本", "开始时间", "结束时间", "人员数", "需求数", "状态"]
+    const headers = ["迭代名称", "所属项目", "所属产品", "所属版本", "开始时间", "结束时间", "需求数", "状态"]
     const rows = filteredIterations.map((i) => {
       const project = getProjectById(i.projectId)
       const version = getVersionById(i.versionId)
-      const members = getProjectMembers(i.projectId)
       const reqCount = getIterationRequirementCount(i.id)
       return [
         i.name,
@@ -232,7 +179,6 @@ export default function IterationsPage() {
         version?.versionNumber || "-",
         i.startDate,
         i.endDate,
-        members.length.toString(),
         reqCount.total.toString(),
         i.status,
       ]
@@ -340,17 +286,15 @@ export default function IterationsPage() {
                 <TableHead className="w-[90px]">所属版本</TableHead>
                 <TableHead className="w-[100px]">开始时间</TableHead>
                 <TableHead className="w-[100px]">结束时间</TableHead>
-                <TableHead className="w-[70px]">人员数</TableHead>
                 <TableHead className="w-[70px]">需求数</TableHead>
                 <TableHead className="w-[80px]">状态</TableHead>
-                <TableHead className="w-[180px]">操作</TableHead>
+                <TableHead className="w-[120px]">操作</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {paginatedIterations.map((iteration) => {
                 const project = getProjectById(iteration.projectId)
                 const version = getVersionById(iteration.versionId)
-                const members = getProjectMembers(iteration.projectId)
                 const reqCount = getIterationRequirementCount(iteration.id)
                 const status = statusConfig[iteration.status] || statusConfig["规划中"]
                 return (
@@ -391,17 +335,6 @@ export default function IterationsPage() {
                     <TableCell>{iteration.startDate}</TableCell>
                     <TableCell>{iteration.endDate}</TableCell>
                     <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 px-2 text-blue-600 hover:text-blue-700 gap-1"
-                        onClick={() => handleMembersClick(iteration)}
-                      >
-                        <Users className="size-3.5" />
-                        {members.length}
-                      </Button>
-                    </TableCell>
-                    <TableCell>
                       <Link
                         href={`/requirements?type=AR&iteration=${iteration.id}`}
                         className="text-blue-600 hover:underline flex items-center gap-1"
@@ -415,15 +348,6 @@ export default function IterationsPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 px-2 text-green-600 hover:text-green-700"
-                          onClick={() => handleRequirementsClick(iteration)}
-                        >
-                          <ListChecks className="size-3.5 mr-1" />
-                          需求
-                        </Button>
                         <Button
                           variant="ghost"
                           size="sm"
@@ -511,108 +435,6 @@ export default function IterationsPage() {
           </div>
         </div>
       </div>
-
-      {/* 人员弹窗 */}
-      <Dialog open={membersOpen} onOpenChange={setMembersOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>项目成员 - {selectedProjectName}</DialogTitle>
-            <DialogDescription>
-              共 {selectedMembers.length} 名成员
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4 max-h-96 overflow-y-auto">
-            {selectedMembers.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">暂无成员</div>
-            ) : (
-              <div className="space-y-3">
-                {selectedMembers.map((member) => (
-                  <div
-                    key={member.id}
-                    className="flex items-center justify-between p-3 rounded-lg border hover:bg-gray-50"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="size-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-medium">
-                        {member.name.slice(0, 1)}
-                      </div>
-                      <div>
-                        <div className="font-medium">{member.name}</div>
-                        {member.email && (
-                          <div className="text-sm text-gray-500">{member.email}</div>
-                        )}
-                      </div>
-                    </div>
-                    <Badge className={roleColors[member.role] || "bg-gray-100 text-gray-700"}>
-                      {member.role}
-                    </Badge>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setMembersOpen(false)}>
-              关闭
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* 需求管理弹窗 */}
-      <Dialog open={requirementsOpen} onOpenChange={setRequirementsOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>管理迭代需求 - {selectedIteration?.name}</DialogTitle>
-            <DialogDescription>
-              选择要关联到此迭代的AR需求（当前已关联 {selectedArIds.size} 个）
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4 max-h-96 overflow-y-auto">
-            {allArs.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">暂无可用需求</div>
-            ) : (
-              <div className="space-y-2">
-                {allArs.map((ar) => (
-                  <div
-                    key={ar.id}
-                    className="flex items-center gap-3 p-3 rounded-lg border hover:bg-gray-50 cursor-pointer"
-                    onClick={() => handleArToggle(ar.id)}
-                  >
-                    <Checkbox
-                      checked={selectedArIds.has(ar.id)}
-                      onCheckedChange={() => handleArToggle(ar.id)}
-                    />
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-blue-600">{ar.code}</span>
-                        <span>{ar.name}</span>
-                      </div>
-                      <div className="text-sm text-gray-500 mt-1">
-                        前端: {ar.frontend} | 后端: {ar.backend} | 测试: {ar.tester}
-                      </div>
-                    </div>
-                    <Badge className={
-                      ar.status === "已完成" ? "bg-green-100 text-green-700" :
-                      ar.status === "进行中" ? "bg-blue-100 text-blue-700" :
-                      "bg-gray-100 text-gray-700"
-                    }>
-                      {ar.status}
-                    </Badge>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setRequirementsOpen(false)}>
-              取消
-            </Button>
-            <Button className="bg-blue-600 hover:bg-blue-700" onClick={handleSaveRequirements}>
-              保存
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* 新增/编辑对话框 */}
       <Dialog open={formOpen} onOpenChange={setFormOpen}>

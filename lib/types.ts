@@ -97,3 +97,55 @@ export interface TaskHistory {
   newValue?: string // 新值
   description?: string // 描述
 }
+
+// 项目
+export interface Project {
+  id: string
+  name: string // 项目名称
+  code: string // 项目代号
+  financeCode: string // 财务编码
+  owner: string // 负责人
+  manager: string // 项目经理
+  startDate: string // 开始时间
+  endDate: string // 结束时间
+  status: "进行中" | "已完成" | "已暂停" | "未开始"
+  description?: string
+}
+
+// 版本
+export interface Version {
+  id: string
+  productName: string // 产品名
+  projectId: string // 关联项目ID
+  versionNumber: string // 版本号
+  startDate: string // 开始时间
+  endDate: string // 结束时间
+  status: "进行中" | "已发布" | "规划中"
+  description?: string
+}
+
+// 迭代
+export interface Iteration {
+  id: string
+  name: string // 迭代名称
+  projectId: string // 所属项目ID
+  productName: string // 所属产品
+  versionId: string // 所属版本ID
+  startDate: string // 开始时间
+  endDate: string // 结束时间
+  status: "进行中" | "已完成" | "规划中"
+  description?: string
+}
+
+// AR需求扩展信息（用于项目管理展示）
+export interface ARRequirementDetail {
+  id: string
+  code: string
+  name: string
+  frontend: string // 前端负责人
+  backend: string // 后端负责人
+  tester: string // 测试人
+  testCaseCount: number // 测试用例数
+  status: RequirementStatus
+  iterationId?: string // 所属迭代ID
+}

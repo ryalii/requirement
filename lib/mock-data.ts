@@ -1,4 +1,4 @@
-import type { Requirement, TestCase, Task, TaskHistory } from "./types"
+import type { Requirement, TestCase, Task, TaskHistory, Project, Version, Iteration, ARRequirementDetail } from "./types"
 
 // 测试用例数据
 export const mockTestCases: TestCase[] = [
@@ -511,4 +511,314 @@ export function getTaskById(id: string): Task | undefined {
 // 获取任务历史
 export function getTaskHistories(taskId: string): TaskHistory[] {
   return mockTaskHistories.filter((h) => h.taskId === taskId)
+}
+
+// 项目数据
+export const mockProjects: Project[] = [
+  {
+    id: "proj-001",
+    name: "用户管理系统升级项目",
+    code: "Terra",
+    financeCode: "82525",
+    owner: "张伟",
+    manager: "李明",
+    startDate: "2024-01-01",
+    endDate: "2024-06-30",
+    status: "进行中",
+    description: "对现有用户管理系统进行全面升级",
+  },
+  {
+    id: "proj-002",
+    name: "报表系统定制项目",
+    code: "Phoenix",
+    financeCode: "82526",
+    owner: "王芳",
+    manager: "赵强",
+    startDate: "2024-02-01",
+    endDate: "2024-07-31",
+    status: "进行中",
+    description: "定制化报表系统开发",
+  },
+  {
+    id: "proj-003",
+    name: "移动端适配项目",
+    code: "Atlas",
+    financeCode: "82527",
+    owner: "陈刚",
+    manager: "刘洋",
+    startDate: "2024-03-01",
+    endDate: "2024-08-31",
+    status: "进行中",
+    description: "现有系统移动端适配开发",
+  },
+  {
+    id: "proj-004",
+    name: "智能客服系统项目",
+    code: "Nova",
+    financeCode: "82528",
+    owner: "孙丽",
+    manager: "周杰",
+    startDate: "2024-04-01",
+    endDate: "2024-12-31",
+    status: "未开始",
+    description: "智能客服系统开发",
+  },
+]
+
+// 版本数据
+export const mockVersions: Version[] = [
+  {
+    id: "ver-001",
+    productName: "用户管理系统",
+    projectId: "proj-001",
+    versionNumber: "V1.0.0",
+    startDate: "2024-01-01",
+    endDate: "2024-03-31",
+    status: "已发布",
+    description: "首个正式版本",
+  },
+  {
+    id: "ver-002",
+    productName: "用户管理系统",
+    projectId: "proj-001",
+    versionNumber: "V1.1.0",
+    startDate: "2024-04-01",
+    endDate: "2024-06-30",
+    status: "进行中",
+    description: "功能增强版本",
+  },
+  {
+    id: "ver-003",
+    productName: "报表系统",
+    projectId: "proj-002",
+    versionNumber: "V1.0.0",
+    startDate: "2024-02-01",
+    endDate: "2024-05-31",
+    status: "进行中",
+    description: "首个正式版本",
+  },
+  {
+    id: "ver-004",
+    productName: "移动端APP",
+    projectId: "proj-003",
+    versionNumber: "V1.0.0",
+    startDate: "2024-03-01",
+    endDate: "2024-06-30",
+    status: "进行中",
+    description: "首个移动端版本",
+  },
+]
+
+// 迭代数据
+export const mockIterations: Iteration[] = [
+  {
+    id: "iter-001",
+    name: "Sprint 1",
+    projectId: "proj-001",
+    productName: "用户管理系统",
+    versionId: "ver-001",
+    startDate: "2024-01-01",
+    endDate: "2024-01-31",
+    status: "已完成",
+    description: "用户认证模块开发",
+  },
+  {
+    id: "iter-002",
+    name: "Sprint 2",
+    projectId: "proj-001",
+    productName: "用户管理系统",
+    versionId: "ver-001",
+    startDate: "2024-02-01",
+    endDate: "2024-02-29",
+    status: "已完成",
+    description: "权限管理模块开发",
+  },
+  {
+    id: "iter-003",
+    name: "Sprint 3",
+    projectId: "proj-001",
+    productName: "用户管理系统",
+    versionId: "ver-001",
+    startDate: "2024-03-01",
+    endDate: "2024-03-31",
+    status: "已完成",
+    description: "系统集成测试",
+  },
+  {
+    id: "iter-004",
+    name: "Sprint 4",
+    projectId: "proj-001",
+    productName: "用户管理系统",
+    versionId: "ver-002",
+    startDate: "2024-04-01",
+    endDate: "2024-04-30",
+    status: "进行中",
+    description: "OAuth2.0集成",
+  },
+  {
+    id: "iter-005",
+    name: "Sprint 5",
+    projectId: "proj-001",
+    productName: "用户管理系统",
+    versionId: "ver-002",
+    startDate: "2024-05-01",
+    endDate: "2024-05-31",
+    status: "规划中",
+    description: "高级权限功能开发",
+  },
+  {
+    id: "iter-006",
+    name: "Sprint 1",
+    projectId: "proj-002",
+    productName: "报表系统",
+    versionId: "ver-003",
+    startDate: "2024-02-01",
+    endDate: "2024-03-15",
+    status: "已完成",
+    description: "数据采集模块开发",
+  },
+  {
+    id: "iter-007",
+    name: "Sprint 2",
+    projectId: "proj-002",
+    productName: "报表系统",
+    versionId: "ver-003",
+    startDate: "2024-03-16",
+    endDate: "2024-04-30",
+    status: "进行中",
+    description: "报表展示模块开发",
+  },
+  {
+    id: "iter-008",
+    name: "Sprint 1",
+    projectId: "proj-003",
+    productName: "移动端APP",
+    versionId: "ver-004",
+    startDate: "2024-03-01",
+    endDate: "2024-04-15",
+    status: "进行中",
+    description: "移动端首页开发",
+  },
+]
+
+// AR需求详情（带前后端负责人等）
+export const mockARDetails: ARRequirementDetail[] = [
+  {
+    id: "ar-001",
+    code: "AR-2024-001",
+    name: "登录接口开发",
+    frontend: "小王",
+    backend: "小李",
+    tester: "小张",
+    testCaseCount: 5,
+    status: "已完成",
+    iterationId: "iter-001",
+  },
+  {
+    id: "ar-002",
+    code: "AR-2024-002",
+    name: "OAuth2.0集成",
+    frontend: "小王",
+    backend: "小李",
+    tester: "小张",
+    testCaseCount: 8,
+    status: "进行中",
+    iterationId: "iter-004",
+  },
+  {
+    id: "ar-003",
+    code: "AR-2024-003",
+    name: "角色管理API",
+    frontend: "小赵",
+    backend: "小钱",
+    tester: "小孙",
+    testCaseCount: 6,
+    status: "进行中",
+    iterationId: "iter-004",
+  },
+  {
+    id: "ar-004",
+    code: "AR-2024-004",
+    name: "权限校验中间件",
+    frontend: "-",
+    backend: "小钱",
+    tester: "小孙",
+    testCaseCount: 4,
+    status: "待分析",
+    iterationId: "iter-005",
+  },
+  {
+    id: "ar-005",
+    code: "AR-2024-005",
+    name: "数据源连接池管理",
+    frontend: "-",
+    backend: "小周",
+    tester: "小吴",
+    testCaseCount: 3,
+    status: "待分析",
+    iterationId: "iter-007",
+  },
+  {
+    id: "ar-006",
+    code: "AR-2024-006",
+    name: "移动端首页开发",
+    frontend: "小郑",
+    backend: "小王",
+    tester: "小冯",
+    testCaseCount: 7,
+    status: "待分析",
+    iterationId: "iter-008",
+  },
+]
+
+// 项目相关函数
+export function getAllProjects(): Project[] {
+  return mockProjects
+}
+
+export function getProjectById(id: string): Project | undefined {
+  return mockProjects.find((p) => p.id === id)
+}
+
+export function getProjectByCode(code: string): Project | undefined {
+  return mockProjects.find((p) => p.code === code)
+}
+
+// 版本相关函数
+export function getAllVersions(): Version[] {
+  return mockVersions
+}
+
+export function getVersionById(id: string): Version | undefined {
+  return mockVersions.find((v) => v.id === id)
+}
+
+export function getVersionsByProjectId(projectId: string): Version[] {
+  return mockVersions.filter((v) => v.projectId === projectId)
+}
+
+// 迭代相关函数
+export function getAllIterations(): Iteration[] {
+  return mockIterations
+}
+
+export function getIterationById(id: string): Iteration | undefined {
+  return mockIterations.find((i) => i.id === id)
+}
+
+export function getIterationsByVersionId(versionId: string): Iteration[] {
+  return mockIterations.filter((i) => i.versionId === versionId)
+}
+
+export function getIterationsByProjectId(projectId: string): Iteration[] {
+  return mockIterations.filter((i) => i.projectId === projectId)
+}
+
+// AR详情相关函数
+export function getARDetailsByIterationId(iterationId: string): ARRequirementDetail[] {
+  return mockARDetails.filter((ar) => ar.iterationId === iterationId)
+}
+
+export function getARDetailById(id: string): ARRequirementDetail | undefined {
+  return mockARDetails.find((ar) => ar.id === id)
 }

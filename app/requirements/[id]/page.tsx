@@ -71,7 +71,17 @@ import {
 } from "@/lib/mock-data"
 import type { Requirement, RequirementType } from "@/lib/types"
 
-const typeConfig: Record<RequirementType, { 
+// 默认配置，用于未知类型的回退
+const defaultTypeConfig = {
+  color: "text-gray-700",
+  bgColor: "bg-gray-50",
+  borderColor: "border-gray-200",
+  label: "未知类型",
+  description: "未知需求类型"
+}
+
+// 使用string索引以支持运行时动态值
+const typeConfig: Record<string, { 
   color: string
   bgColor: string
   borderColor: string
@@ -131,11 +141,7 @@ function RequirementTraceCard({
   relation: "parent" | "child"
   icon: React.ElementType
 }) {
-  const config = typeConfig[requirement.type] || {
-    color: "text-gray-700",
-    bgColor: "bg-gray-50",
-    borderColor: "border-gray-200",
-  }
+  const config = typeConfig[requirement.type] || defaultTypeConfig
   const status = statusConfig[requirement.status] || statusConfig["待分析"]
   
   return (
@@ -192,11 +198,7 @@ function RequirementTraceCard({
 
 // 子需求列表项组件
 function ChildRequirementItem({ requirement }: { requirement: Requirement }) {
-  const config = typeConfig[requirement.type] || {
-    color: "text-gray-700",
-    bgColor: "bg-gray-50",
-    borderColor: "border-gray-200",
-  }
+  const config = typeConfig[requirement.type] || defaultTypeConfig
   const status = statusConfig[requirement.status] || statusConfig["待分析"]
   
   return (
@@ -335,13 +337,7 @@ export default function RequirementDetailPage() {
   }
 
   // 添加安全回退，防止未知类型导致崩溃
-  const config = typeConfig[requirement.type] || {
-    color: "text-gray-700",
-    bgColor: "bg-gray-50",
-    borderColor: "border-gray-200",
-    label: "未知类型",
-    description: "未知需求类型"
-  }
+  const config = typeConfig[requirement.type] || defaultTypeConfig
   const status = statusConfig[requirement.status] || statusConfig["待分析"]
   const priority = priorityConfig[requirement.priority] || priorityConfig["中"]
 

@@ -22,6 +22,10 @@ import {
   Settings,
   Key,
   User,
+  FolderKanban,
+  Layers,
+  GitBranch,
+  Repeat,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -110,6 +114,31 @@ const taskMenuItems: MenuItem[] = [
         title: "概览",
         icon: <LayoutDashboard className="size-4" />,
         href: "/tasks",
+      },
+    ],
+  },
+]
+
+// 项目管理菜单
+const projectMenuItems: MenuItem[] = [
+  {
+    title: "项目管理",
+    icon: <FolderKanban className="size-4" />,
+    children: [
+      {
+        title: "项目",
+        icon: <Layers className="size-4" />,
+        href: "/projects",
+      },
+      {
+        title: "版本",
+        icon: <GitBranch className="size-4" />,
+        href: "/projects/versions",
+      },
+      {
+        title: "迭代",
+        icon: <Repeat className="size-4" />,
+        href: "/projects/iterations",
       },
     ],
   },
@@ -291,17 +320,20 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   const isWorkspaceArea = pathname === "/workspace"
   const isRequirementsArea = pathname.startsWith("/requirements")
   const isTasksArea = pathname.startsWith("/tasks")
+  const isProjectsArea = pathname.startsWith("/projects")
 
   // 判断顶部导航的激活状态
   const isWorkspaceActive = isWorkspaceArea
   const isRequirementsActive = isRequirementsArea
   const isTasksActive = isTasksArea
+  const isProjectsActive = isProjectsArea
 
   // 根据当前区域选择不同的菜单
   const getCurrentMenuItems = () => {
     if (isWorkspaceArea) return workspaceMenuItems
     if (isRequirementsArea) return requirementMenuItems
     if (isTasksArea) return taskMenuItems
+    if (isProjectsArea) return projectMenuItems
     return workspaceMenuItems
   }
 
@@ -356,6 +388,17 @@ export function AdminLayout({ children }: AdminLayoutProps) {
               )}
             >
               任务管理
+            </Link>
+            <Link
+              href="/projects"
+              className={cn(
+                "px-4 py-2 text-sm rounded-md transition-colors",
+                isProjectsActive 
+                  ? "bg-blue-600" 
+                  : "hover:bg-slate-700"
+              )}
+            >
+              项目管理
             </Link>
           </nav>
         </div>

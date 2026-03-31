@@ -1042,10 +1042,10 @@ export function getIterationRequirementCount(iterationId: string): { total: numb
   return { total, completed, inProgress, blocked }
 }
 
-// ============ 测试用例数据 ============
+// ============ 测试用例详情数据（TestCaseDetail）============
 import type { TestCaseDetail, TestStep, Bug, BugStatus, BugSeverity, TestCaseStatus } from "./types"
 
-export const mockTestCases: TestCaseDetail[] = [
+export const mockTestCaseDetails: TestCaseDetail[] = [
   {
     id: "tc-001",
     code: "TC-001",
@@ -1099,7 +1099,7 @@ export const mockTestCases: TestCaseDetail[] = [
   {
     id: "tc-003",
     code: "TC-003",
-    name: "需求列表查询功���验证",
+    name: "需求列表查询功�����验证",
     description: "验证需求列表的搜索和筛选功能",
     precondition: "系统中已有需求数据",
     steps: [
@@ -1252,24 +1252,24 @@ export const mockBugs: Bug[] = [
   },
 ]
 
-// 获取所有测试用例
-export function getAllTestCases(): TestCaseDetail[] {
-  return mockTestCases
+// 获取所有测试用例详情
+export function getAllTestCaseDetails(): TestCaseDetail[] {
+  return mockTestCaseDetails
 }
 
-// 根据ID获取测试用例
-export function getTestCaseById(id: string): TestCaseDetail | undefined {
-  return mockTestCases.find((tc) => tc.id === id)
+// 根据ID获取测试用例详情
+export function getTestCaseDetailById(id: string): TestCaseDetail | undefined {
+  return mockTestCaseDetails.find((tc) => tc.id === id)
 }
 
-// 根据条件筛选测试用例
-export function filterTestCases(filters: {
+// 根据条件筛选测试用例详情
+export function filterTestCaseDetails(filters: {
   projectId?: string
   versionId?: string
   iterationId?: string
   status?: TestCaseStatus
 }): TestCaseDetail[] {
-  return mockTestCases.filter((tc) => {
+  return mockTestCaseDetails.filter((tc) => {
     if (filters.projectId && tc.projectId !== filters.projectId) return false
     if (filters.versionId && tc.versionId !== filters.versionId) return false
     if (filters.iterationId && tc.iterationId !== filters.iterationId) return false
@@ -1321,9 +1321,9 @@ export function getBugsByTestCaseId(testCaseId: string): Bug[] {
   return mockBugs.filter((bug) => bug.relatedTestCaseId === testCaseId)
 }
 
-// 根据AR需求ID获取关联的测试用例
-export function getTestCasesByArId(arId: string): TestCaseDetail[] {
-  return mockTestCases.filter((tc) => tc.relatedArIds.includes(arId))
+// 根据AR需求ID获取关联的测试用例详情
+export function getTestCaseDetailsByArId(arId: string): TestCaseDetail[] {
+  return mockTestCaseDetails.filter((tc) => tc.relatedArIds.includes(arId))
 }
 
 // 根据AR需求ID获取关联的Bug

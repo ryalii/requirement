@@ -36,7 +36,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { getBugById, getTestCaseById, mockARDetails } from "@/lib/mock-data"
+import { getBugById, getTestCaseDetailById, mockARDetails } from "@/lib/mock-data"
 import type { Bug as BugType, BugStatus, OperationLog, TestCaseDetail, ARRequirementDetail } from "@/lib/types"
 
 const statusConfig: Record<BugStatus, { label: string; color: string; icon: React.ReactNode }> = {
@@ -85,7 +85,7 @@ export default function BugDetailPage() {
     if (b) {
       setBug(b)
       if (b.relatedTestCaseId) {
-        setRelatedTestCase(getTestCaseById(b.relatedTestCaseId) || null)
+        setRelatedTestCase(getTestCaseDetailById(b.relatedTestCaseId) || null)
       }
       if (b.relatedArId) {
         setRelatedAr(mockARDetails.find(ar => ar.id === b.relatedArId) || null)

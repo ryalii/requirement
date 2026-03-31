@@ -47,7 +47,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import {
-  getTestCaseById,
+  getTestCaseDetailById,
   getBugsByTestCaseId,
   mockARDetails,
   getTestCaseLogs,
@@ -106,7 +106,7 @@ export default function TestCaseDetailPage() {
   })
 
   React.useEffect(() => {
-    const tc = getTestCaseById(testCaseId)
+    const tc = getTestCaseDetailById(testCaseId)
     if (tc) {
       setTestCase(tc)
       setBugs(getBugsByTestCaseId(testCaseId))
@@ -428,7 +428,7 @@ export default function TestCaseDetailPage() {
           </CardContent>
         </Card>
 
-        {/* 关联Bug */}
+        {/* 关��Bug */}
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-lg flex items-center gap-2">

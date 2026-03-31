@@ -57,7 +57,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
 import {
-  getAllTestCases,
+  getAllTestCaseDetails,
   getAllProjects,
   getAllVersions,
   getAllIterations,
@@ -117,7 +117,7 @@ export default function TestCasesPage() {
   })
 
   React.useEffect(() => {
-    setTestCases(getAllTestCases())
+    setTestCases(getAllTestCaseDetails())
     setProjects(getAllProjects())
     setVersions(getAllVersions())
     setIterations(getAllIterations())

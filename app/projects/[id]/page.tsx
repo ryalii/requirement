@@ -3,10 +3,29 @@
 import * as React from "react"
 import Link from "next/link"
 import { useParams } from "next/navigation"
-import { ArrowLeft, ChevronRight, ChevronDown, GitBranch, Repeat, FileCode, ExternalLink, Briefcase, Clock, CheckCircle2, AlertCircle, PauseCircle, History, Users } from "lucide-react"
+import { ArrowLeft, ChevronRight, ChevronDown, GitBranch, Repeat, FileCode, ExternalLink, Briefcase, Clock, CheckCircle2, AlertCircle, History, Users, Plus, Trash2 } from "lucide-react"
 import { AdminLayout } from "@/components/admin-layout"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Breadcrumb,
@@ -175,6 +194,14 @@ export default function ProjectDetailPage() {
   const [reqStats, setReqStats] = React.useState({ total: 0, completed: 0, inProgress: 0, blocked: 0 })
   const [membersOpen, setMembersOpen] = React.useState(false)
   const [logsOpen, setLogsOpen] = React.useState(false)
+  const [addMemberOpen, setAddMemberOpen] = React.useState(false)
+  const [deleteMemberOpen, setDeleteMemberOpen] = React.useState(false)
+  const [memberToDelete, setMemberToDelete] = React.useState<ProjectMember | null>(null)
+  const [newMember, setNewMember] = React.useState({
+    name: "",
+    email: "",
+    role: "前端开发" as string,
+  })
 
   React.useEffect(() => {
     const proj = getProjectById(projectId)
@@ -388,43 +415,72 @@ export default function ProjectDetailPage() {
         </Card>
       </div>
 
-      {/* 团队成员弹窗 */}
+      {/* 团队成员管理弹窗 */}
       <Dialog open={membersOpen} onOpenChange={setMembersOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>团队成员 - {project.name}</DialogTitle>
+            <DialogTitle>团队成员管理 - {project.name}</DialogTitle>
             <DialogDescription>
-              共 {members.length} 名成员
+              共 {members.length} 名成员，可新增或删除成员
             </DialogDescription>
           </DialogHeader>
-          <div className="py-4 max-h-96 overflow-y-auto">
-            {members.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">暂无成员</div>
-            ) : (
-              <div className="space-y-3">
-                {members.map((member) => (
-                  <div
-                    key={member.id}
-                    className="flex items-center justify-between p-3 rounded-lg border hover:bg-gray-50"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="size-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-medium">
-                        {member.name.slice(0, 1)}
+          <div className="py-4">
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-sm text-gray-500">成员列表</span>
+              <Button
+                size="sm"
+                className="bg-blue-600 hover:bg-blue-700"
+                onClick={() => {
+                  setNewMember({ name: "", email: "", role: "前端开发" })
+                  setAddMemberOpen(true)
+                }}
+              >
+                <Plus className="size-4 mr-1" />
+                新增成员
+              </Button>
+            </div>
+            <div className="max-h-80 overflow-y-auto">
+              {members.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">暂无成员，点击上方按钮添加</div>
+              ) : (
+                <div className="space-y-3">
+                  {members.map((member) => (
+                    <div
+                      key={member.id}
+                      className="flex items-center justify-between p-3 rounded-lg border hover:bg-gray-50"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="size-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-medium">
+                          {member.name.slice(0, 1)}
+                        </div>
+                        <div>
+                          <div className="font-medium">{member.name}</div>
+                          {member.email && (
+                            <div className="text-sm text-gray-500">{member.email}</div>
+                          )}
+                        </div>
                       </div>
-                      <div>
-                        <div className="font-medium">{member.name}</div>
-                        {member.email && (
-                          <div className="text-sm text-gray-500">{member.email}</div>
-                        )}
+                      <div className="flex items-center gap-2">
+                        <Badge className={roleColors[member.role] || "bg-gray-100 text-gray-700"}>
+                          {member.role}
+                        </Badge>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 px-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+                          onClick={() => {
+                            setMemberToDelete(member)
+                            setDeleteMemberOpen(true)
+                          }}
+                        >
+                          <Trash2 className="size-4" />
+                        </Button>
                       </div>
                     </div>
-                    <Badge className={roleColors[member.role] || "bg-gray-100 text-gray-700"}>
-                      {member.role}
-                    </Badge>
-                  </div>
-                ))}
-              </div>
-            )}
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setMembersOpen(false)}>
@@ -433,6 +489,109 @@ export default function ProjectDetailPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* 新增成员弹窗 */}
+      <Dialog open={addMemberOpen} onOpenChange={setAddMemberOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>新增成员</DialogTitle>
+            <DialogDescription>
+              添加新的团队成员到项目中
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>姓名 <span className="text-red-500">*</span></Label>
+              <Input
+                value={newMember.name}
+                onChange={(e) => setNewMember({ ...newMember, name: e.target.value })}
+                placeholder="请输入成员姓名"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>邮箱</Label>
+              <Input
+                type="email"
+                value={newMember.email}
+                onChange={(e) => setNewMember({ ...newMember, email: e.target.value })}
+                placeholder="请输入邮箱地址"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>角色 <span className="text-red-500">*</span></Label>
+              <Select
+                value={newMember.role}
+                onValueChange={(v) => setNewMember({ ...newMember, role: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="负责人">负责人</SelectItem>
+                  <SelectItem value="项目经理">项目经理</SelectItem>
+                  <SelectItem value="产品经理">产品经理</SelectItem>
+                  <SelectItem value="前端开发">前端开发</SelectItem>
+                  <SelectItem value="后端开发">后端开发</SelectItem>
+                  <SelectItem value="测试工程师">测试工程师</SelectItem>
+                  <SelectItem value="架构师">架构师</SelectItem>
+                  <SelectItem value="UI设计师">UI设计师</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAddMemberOpen(false)}>
+              取消
+            </Button>
+            <Button
+              className="bg-blue-600 hover:bg-blue-700"
+              onClick={() => {
+                if (newMember.name.trim()) {
+                  const newMemberData: ProjectMember = {
+                    id: `member-${Date.now()}`,
+                    projectId: projectId,
+                    name: newMember.name,
+                    email: newMember.email || undefined,
+                    role: newMember.role,
+                  }
+                  setMembers([...members, newMemberData])
+                  setAddMemberOpen(false)
+                  setNewMember({ name: "", email: "", role: "前端开发" })
+                }
+              }}
+              disabled={!newMember.name.trim()}
+            >
+              确定添加
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 删除成员确认弹窗 */}
+      <AlertDialog open={deleteMemberOpen} onOpenChange={setDeleteMemberOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>确认删除成员</AlertDialogTitle>
+            <AlertDialogDescription>
+              确定要将 <span className="font-medium text-gray-900">{memberToDelete?.name}</span> 从项目团队中移除吗？此操作不可撤销。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700"
+              onClick={() => {
+                if (memberToDelete) {
+                  setMembers(members.filter(m => m.id !== memberToDelete.id))
+                  setMemberToDelete(null)
+                }
+              }}
+            >
+              确认删除
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* 操作日志弹窗 */}
       <Dialog open={logsOpen} onOpenChange={setLogsOpen}>

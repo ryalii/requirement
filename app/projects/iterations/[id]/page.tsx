@@ -3,7 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { useParams } from "next/navigation"
-import { ArrowLeft, Repeat, GitBranch, FileCode, ExternalLink, ChevronRight, ChevronDown, Briefcase, History, Users, Clock, CheckCircle2, AlertCircle } from "lucide-react"
+import { ArrowLeft, Repeat, GitBranch, FileCode, ExternalLink, ChevronRight, ChevronDown, Briefcase, History, Clock, CheckCircle2, AlertCircle } from "lucide-react"
 import { AdminLayout } from "@/components/admin-layout"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -29,11 +29,10 @@ import {
   getProjectById,
   getVersionById,
   getARDetailsByIterationId,
-  getProjectMembers,
   getIterationRequirementCount,
   getOperationLogs,
 } from "@/lib/mock-data"
-import type { Iteration, Project, Version, ARRequirementDetail, ProjectMember, OperationLog } from "@/lib/types"
+import type { Iteration, Project, Version, ARRequirementDetail, OperationLog } from "@/lib/types"
 
 const iterStatusConfig: Record<string, { label: string; color: string }> = {
   "进行中": { label: "进行中", color: "bg-blue-100 text-blue-700" },
@@ -46,15 +45,6 @@ const arStatusConfig: Record<string, { label: string; color: string }> = {
   "进行中": { label: "进行中", color: "bg-blue-100 text-blue-700" },
   "已完成": { label: "已完成", color: "bg-green-100 text-green-700" },
   "已关闭": { label: "已关闭", color: "bg-red-100 text-red-700" },
-}
-
-const roleColors: Record<string, string> = {
-  "负责人": "bg-red-100 text-red-700",
-  "项目经理": "bg-blue-100 text-blue-700",
-  "前端开发": "bg-green-100 text-green-700",
-  "后端开发": "bg-purple-100 text-purple-700",
-  "测试工程师": "bg-orange-100 text-orange-700",
-  "产品经理": "bg-cyan-100 text-cyan-700",
 }
 
 // 树节点组件
@@ -157,10 +147,8 @@ export default function IterationDetailPage() {
   const [project, setProject] = React.useState<Project | null>(null)
   const [version, setVersion] = React.useState<Version | null>(null)
   const [ars, setArs] = React.useState<ARRequirementDetail[]>([])
-  const [members, setMembers] = React.useState<ProjectMember[]>([])
   const [logs, setLogs] = React.useState<OperationLog[]>([])
   const [reqStats, setReqStats] = React.useState({ total: 0, completed: 0, inProgress: 0, blocked: 0 })
-  const [membersOpen, setMembersOpen] = React.useState(false)
   const [logsOpen, setLogsOpen] = React.useState(false)
 
   React.useEffect(() => {
@@ -172,7 +160,6 @@ export default function IterationDetailPage() {
       const ver = getVersionById(iter.versionId)
       setVersion(ver || null)
       setArs(getARDetailsByIterationId(iterationId))
-      setMembers(getProjectMembers(iter.projectId))
       setLogs(getOperationLogs("iteration", iterationId))
       setReqStats(getIterationRequirementCount(iterationId))
     }
@@ -219,10 +206,6 @@ export default function IterationDetailPage() {
             </Button>
           </Link>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => setMembersOpen(true)}>
-              <Users className="size-4 mr-1" />
-              团队成员 ({members.length})
-            </Button>
             <Button variant="outline" size="sm" onClick={() => setLogsOpen(true)}>
               <History className="size-4 mr-1" />
               操作日志
@@ -380,52 +363,6 @@ export default function IterationDetailPage() {
           </CardContent>
         </Card>
       </div>
-
-      {/* 团队成员弹窗 */}
-      <Dialog open={membersOpen} onOpenChange={setMembersOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>团队成员 - {project?.name}</DialogTitle>
-            <DialogDescription>
-              共 {members.length} 名成员
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4 max-h-96 overflow-y-auto">
-            {members.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">暂无成员</div>
-            ) : (
-              <div className="space-y-3">
-                {members.map((member) => (
-                  <div
-                    key={member.id}
-                    className="flex items-center justify-between p-3 rounded-lg border hover:bg-gray-50"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="size-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-medium">
-                        {member.name.slice(0, 1)}
-                      </div>
-                      <div>
-                        <div className="font-medium">{member.name}</div>
-                        {member.email && (
-                          <div className="text-sm text-gray-500">{member.email}</div>
-                        )}
-                      </div>
-                    </div>
-                    <Badge className={roleColors[member.role] || "bg-gray-100 text-gray-700"}>
-                      {member.role}
-                    </Badge>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setMembersOpen(false)}>
-              关闭
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* 操作日志弹窗 */}
       <Dialog open={logsOpen} onOpenChange={setLogsOpen}>

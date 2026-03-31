@@ -1099,7 +1099,7 @@ export const mockTestCases: TestCaseDetail[] = [
   {
     id: "tc-003",
     code: "TC-003",
-    name: "需求列表查询功能验证",
+    name: "需求列表查询功���验证",
     description: "验证需求列表的搜索和筛选功能",
     precondition: "系统中已有需求数据",
     steps: [
@@ -1163,13 +1163,13 @@ export const mockTestCases: TestCaseDetail[] = [
   },
 ]
 
-// ============ Bug数据 ============
+// ============ Bug 数据 ============
 export const mockBugs: Bug[] = [
   {
     id: "bug-001",
     code: "BUG-001",
     name: "登录失败提示信息不明确",
-    description: "当用户输入错误密码时，系统只显示"登录失败"，没有具体说明是密码错误还是账号不存在",
+    description: "当用户输入错误密码时，系统只显示「登录失败」，没有具体说明是密码错误还是账号不存在",
     steps: "1. 打开登录页面\n2. 输入正确用户名和错误密码\n3. 点击登录按钮\n4. 观察错误提示",
     severity: "一般",
     status: "处理中",

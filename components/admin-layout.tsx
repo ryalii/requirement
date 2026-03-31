@@ -113,12 +113,12 @@ const requirementMenuItems: MenuItem[] = [
         icon: <ClipboardList className="size-4" />,
         href: "/requirements/testing/test-cases",
       },
+      {
+        title: "Bug单",
+        icon: <Bug className="size-4" />,
+        href: "/requirements/bugs",
+      },
     ],
-  },
-  {
-    title: "Bug单",
-    icon: <Bug className="size-4" />,
-    href: "/requirements/bugs",
   },
 ]
 

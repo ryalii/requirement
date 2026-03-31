@@ -38,6 +38,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   Table,
   TableBody,
@@ -89,6 +90,8 @@ export default function TestCaseDetailPage() {
   const [closeOpen, setCloseOpen] = React.useState(false)
   const [bugOpen, setBugOpen] = React.useState(false)
   const [stepsExpanded, setStepsExpanded] = React.useState(true)
+  const [editArOpen, setEditArOpen] = React.useState(false)
+  const [selectedArIds, setSelectedArIds] = React.useState<Set<string>>(new Set())
   
   // 关闭用例表单
   const [closeResult, setCloseResult] = React.useState<"通过" | "不通过">("通过")
@@ -110,6 +113,7 @@ export default function TestCaseDetailPage() {
     if (tc) {
       setTestCase(tc)
       setBugs(getBugsByTestCaseId(testCaseId))
+      setSelectedArIds(new Set(tc.relatedArIds))
       // 模拟操作日志
       setLogs([
         {
@@ -160,32 +164,76 @@ export default function TestCaseDetailPage() {
   // 获取关联的AR需求
   const relatedArs = mockARDetails.filter(ar => testCase.relatedArIds.includes(ar.id))
 
-  // 关闭用例
-  const handleClose = () => {
+  // 关闭用例 - 通过
+  const handlePassClose = () => {
+    if (!conclusion.trim()) {
+      alert("请输入测试结论")
+      return
+    }
+    const now = new Date().toISOString().slice(0, 19).replace("T", " ")
+    setTestCase({
+      ...testCase,
+      status: "通过",
+      conclusion,
+      executedAt: now,
+    })
+    
+    // 添加操作日志
+    const taskId = `TASK-${Date.now().toString().slice(-6)}`
+    setLogs([
+      ...logs,
+      {
+        id: `log-tc-${Date.now()}`,
+        targetType: "testcase",
+        targetId: testCaseId,
+        action: "测试通过",
+        operator: testCase.assignee || "当前用户",
+        timestamp: now,
+        description: `测试结论：${conclusion}。生成任务 ${taskId}（已完成）`,
+        newValue: "通过",
+      },
+    ])
+    
+    // 关闭关联的需求
+    // 这里实际应该调用API更新需求状态，现在只是演示
+    const closedArCodes = relatedArs.map(ar => ar.code).join(", ")
+    
+    setCloseOpen(false)
+    alert(`测试通过！\n\n已生成任务 ${taskId}（状态：已完成）\n关联需求 ${closedArCodes} 已关闭`)
+  }
+  
+  // 关闭用例 - 不通过，打开Bug创建弹窗
+  const handleFailClose = () => {
     if (!conclusion.trim()) {
       alert("请输入测试结论")
       return
     }
     setTestCase({
       ...testCase,
-      status: closeResult,
+      status: "不通过",
       conclusion,
       executedAt: new Date().toISOString().slice(0, 19).replace("T", " "),
     })
     setCloseOpen(false)
-    
-    if (closeResult === "不通过") {
-      // 引导创建Bug
-      setBugOpen(true)
-    }
+    // 引导创建Bug
+    setBugOpen(true)
   }
 
-  // 创建Bug
+  // 创建Bug（不通过时调用）
   const handleCreateBug = () => {
     if (!bugForm.name.trim() || !bugForm.description.trim()) {
       alert("请填写Bug标题和描述")
       return
     }
+    if (!bugForm.deadline) {
+      alert("请选择任务截止日期")
+      return
+    }
+    
+    const now = new Date().toISOString().slice(0, 19).replace("T", " ")
+    const myTaskId = `TASK-${Date.now().toString().slice(-6)}`
+    const assigneeTaskId = `TASK-${(Date.now() + 1).toString().slice(-6)}`
+    
     const newBug: Bug = {
       id: `bug-${Date.now()}`,
       code: `BUG-${String(bugs.length + 100).padStart(3, "0")}`,
@@ -196,14 +244,39 @@ export default function TestCaseDetailPage() {
       status: "新建",
       assignee: bugForm.assignee || undefined,
       creator: "当前用户",
-      createdAt: new Date().toISOString().slice(0, 19).replace("T", " "),
+      createdAt: now,
       images: bugForm.images,
       relatedTestCaseId: testCaseId,
       relatedArId: testCase.relatedArIds[0],
-      taskId: `task-${Date.now()}`,
+      taskId: assigneeTaskId,
     }
     setBugs([newBug, ...bugs])
     setTestCase({ ...testCase, bugCount: testCase.bugCount + 1 })
+    
+    // 添加操作日志
+    setLogs([
+      ...logs,
+      {
+        id: `log-tc-${Date.now()}`,
+        targetType: "testcase",
+        targetId: testCaseId,
+        action: "测试不通过",
+        operator: testCase.assignee || "当前用户",
+        timestamp: now,
+        description: `创建Bug ${newBug.code}`,
+        newValue: "不通过",
+      },
+      {
+        id: `log-tc-${Date.now() + 1}`,
+        targetType: "testcase",
+        targetId: testCaseId,
+        action: "生成任务",
+        operator: "系统",
+        timestamp: now,
+        description: `生成任务 ${myTaskId}（已完成，当前用户）、${assigneeTaskId}（进行中，${bugForm.assignee || "待分配"}，截止日期：${bugForm.deadline}）`,
+      },
+    ])
+    
     setBugOpen(false)
     setBugForm({
       name: "",
@@ -214,7 +287,8 @@ export default function TestCaseDetailPage() {
       images: [],
       deadline: "",
     })
-    alert(`Bug ${newBug.code} 已创建，同时生成任务 TASK-${Date.now().toString().slice(-6)}`)
+    
+    alert(`Bug ${newBug.code} 已创建！\n\n生成任务：\n1. ${myTaskId}（当前用户，已完成）\n2. ${assigneeTaskId}（${bugForm.assignee || "待分配"}，进行中，截止日期：${bugForm.deadline}）`)
   }
 
   return (
@@ -247,37 +321,31 @@ export default function TestCaseDetailPage() {
           </Link>
           <div className="flex items-center gap-2">
             {(testCase.status === "未执行" || testCase.status === "执行中") && (
-              <Button
-                className="bg-green-600 hover:bg-green-700"
-                onClick={() => {
-                  setCloseResult("通过")
-                  setConclusion("")
-                  setCloseOpen(true)
-                }}
-              >
-                <CheckCircle2 className="size-4 mr-1" />
-                关闭用例
-              </Button>
+              <>
+                <Button
+                  className="bg-green-600 hover:bg-green-700"
+                  onClick={() => {
+                    setCloseResult("通过")
+                    setConclusion("")
+                    setCloseOpen(true)
+                  }}
+                >
+                  <CheckCircle2 className="size-4 mr-1" />
+                  通过
+                </Button>
+                <Button
+                  className="bg-red-600 hover:bg-red-700"
+                  onClick={() => {
+                    setCloseResult("不通过")
+                    setConclusion("")
+                    setCloseOpen(true)
+                  }}
+                >
+                  <XCircle className="size-4 mr-1" />
+                  不通过
+                </Button>
+              </>
             )}
-            <Button
-              variant="outline"
-              className="text-red-600 border-red-200 hover:bg-red-50"
-              onClick={() => {
-                setBugForm({
-                  name: "",
-                  description: "",
-                  steps: "",
-                  severity: "一般",
-                  assignee: "",
-                  images: [],
-                  deadline: "",
-                })
-                setBugOpen(true)
-              }}
-            >
-              <Bug className="size-4 mr-1" />
-              新建Bug
-            </Button>
             <Button variant="outline" onClick={() => setLogsOpen(true)}>
               <History className="size-4 mr-1" />
               操作日志
@@ -391,11 +459,24 @@ export default function TestCaseDetailPage() {
         {/* 关联需求 */}
         <Card className="mb-6">
           <CardHeader className="pb-3">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <FileText className="size-5 text-purple-600" />
-              关联需求
-              <Badge variant="outline">{relatedArs.length}</Badge>
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <FileText className="size-5 text-purple-600" />
+                关联需求
+                <Badge variant="outline">{relatedArs.length}</Badge>
+              </CardTitle>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setSelectedArIds(new Set(testCase.relatedArIds))
+                  setEditArOpen(true)
+                }}
+              >
+                <Plus className="size-4 mr-1" />
+                修改关联
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             {relatedArs.length === 0 ? (
@@ -524,10 +605,10 @@ export default function TestCaseDetailPage() {
             <Button variant="outline" onClick={() => setCloseOpen(false)}>取消</Button>
             <Button
               className={closeResult === "通过" ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700"}
-              onClick={handleClose}
+              onClick={closeResult === "通过" ? handlePassClose : handleFailClose}
               disabled={!conclusion.trim()}
             >
-              确认关闭
+              {closeResult === "通过" ? "确认通过" : "确认不通过"}
             </Button>
           </DialogFooter>
         </DialogContent>

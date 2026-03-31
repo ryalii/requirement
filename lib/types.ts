@@ -165,7 +165,7 @@ export interface ProjectMember {
 // 操作日志
 export interface OperationLog {
   id: string
-  targetType: "project" | "version" | "iteration" // 关联对象类型
+  targetType: "project" | "version" | "iteration" | "testcase" | "bug" // 关联对象类型
   targetId: string // 关联对象ID
   action: string // 操作类型
   operator: string // 操作人
@@ -173,4 +173,66 @@ export interface OperationLog {
   oldValue?: string // 旧值
   newValue?: string // 新值
   description: string // 描述
+}
+
+// 测试步骤
+export interface TestStep {
+  id: string
+  stepNumber: number // 步骤序号
+  action: string // 操作步骤
+  expectedResult: string // 期望结果
+  actualResult?: string // 实际结果
+}
+
+// 测试用例状态
+export type TestCaseStatus = "未执行" | "执行中" | "通过" | "不通过" | "阻塞"
+
+// 测试用例详情
+export interface TestCaseDetail {
+  id: string
+  code: string // 用例编号 TC-XXX
+  name: string // 用例名称
+  description?: string // 用例描述
+  precondition?: string // 前置条件
+  steps: TestStep[] // 测试步骤
+  priority: "高" | "中" | "低" // 优先级
+  status: TestCaseStatus // 状态
+  relatedArIds: string[] // 关联的AR需求ID
+  assignee?: string // 执行人
+  creator: string // 创建人
+  createdAt: string // 创建时间
+  executedAt?: string // 执行时间
+  conclusion?: string // 测试结论
+  bugCount: number // 关联bug数
+  projectId?: string // 关联项目ID
+  versionId?: string // 关联版本ID
+  iterationId?: string // 关联迭代ID
+}
+
+// Bug严重程度
+export type BugSeverity = "致命" | "严重" | "一般" | "轻微" | "建议"
+
+// Bug状态
+export type BugStatus = "新建" | "处理中" | "已修复" | "已验证" | "已关闭" | "重新打开"
+
+// Bug详情
+export interface Bug {
+  id: string
+  code: string // Bug编号 BUG-XXX
+  name: string // Bug标题
+  description: string // Bug描述
+  steps: string // 复现步骤
+  severity: BugSeverity // 严重程度
+  status: BugStatus // 状态
+  assignee?: string // 责任人
+  creator: string // 创建人
+  createdAt: string // 创建时间
+  resolvedAt?: string // 解决时间
+  images?: string[] // 截图URL列表
+  relatedTestCaseId?: string // 关联测试用例ID
+  relatedArId?: string // 关联AR需求ID
+  projectId?: string // 关联项目ID
+  versionId?: string // 关联版本ID
+  iterationId?: string // 关联迭代ID
+  taskId?: string // 关联任务ID
 }

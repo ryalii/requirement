@@ -1041,3 +1041,292 @@ export function getIterationRequirementCount(iterationId: string): { total: numb
   
   return { total, completed, inProgress, blocked }
 }
+
+// ============ 测试用例数据 ============
+import type { TestCaseDetail, TestStep, Bug, BugStatus, BugSeverity, TestCaseStatus } from "./types"
+
+export const mockTestCases: TestCaseDetail[] = [
+  {
+    id: "tc-001",
+    code: "TC-001",
+    name: "用户登录功能验证",
+    description: "验证用户使用正确的账号密码能够成功登录系统",
+    precondition: "用户已注册账号，系统正常运行",
+    steps: [
+      { id: "step-001", stepNumber: 1, action: "打开登录页面", expectedResult: "显示登录表单" },
+      { id: "step-002", stepNumber: 2, action: "输入正确的用户名", expectedResult: "用户名输入框显示输入内容" },
+      { id: "step-003", stepNumber: 3, action: "输入正确的密码", expectedResult: "密码以掩码显示" },
+      { id: "step-004", stepNumber: 4, action: "点击登录按钮", expectedResult: "成功登录并跳转到首页" },
+    ],
+    priority: "高",
+    status: "通过",
+    relatedArIds: ["ar-001"],
+    assignee: "张三",
+    creator: "李明",
+    createdAt: "2024-03-01 10:00:00",
+    executedAt: "2024-03-15 14:30:00",
+    conclusion: "测试通过，功能正常",
+    bugCount: 0,
+    projectId: "proj-001",
+    versionId: "ver-001",
+    iterationId: "iter-001",
+  },
+  {
+    id: "tc-002",
+    code: "TC-002",
+    name: "用户登录失败提示验证",
+    description: "验证用户使用错误密码登录时的错误提示",
+    precondition: "用户已注册账号",
+    steps: [
+      { id: "step-005", stepNumber: 1, action: "打开登录页面", expectedResult: "显示登录表单" },
+      { id: "step-006", stepNumber: 2, action: "输入正确的用户名", expectedResult: "用户名输入框显示输入内容" },
+      { id: "step-007", stepNumber: 3, action: "输入错误的密码", expectedResult: "密码以掩码显示" },
+      { id: "step-008", stepNumber: 4, action: "点击登录按钮", expectedResult: "显示密码错误提示" },
+    ],
+    priority: "中",
+    status: "不通过",
+    relatedArIds: ["ar-001"],
+    assignee: "张三",
+    creator: "李明",
+    createdAt: "2024-03-01 10:30:00",
+    executedAt: "2024-03-15 15:00:00",
+    conclusion: "错误提示不明确，需要优化",
+    bugCount: 1,
+    projectId: "proj-001",
+    versionId: "ver-001",
+    iterationId: "iter-001",
+  },
+  {
+    id: "tc-003",
+    code: "TC-003",
+    name: "需求列表查询功能验证",
+    description: "验证需求列表的搜索和筛选功能",
+    precondition: "系统中已有需求数据",
+    steps: [
+      { id: "step-009", stepNumber: 1, action: "进入需求列表页面", expectedResult: "显示需求列表" },
+      { id: "step-010", stepNumber: 2, action: "在搜索框输入关键字", expectedResult: "输入内容正常显示" },
+      { id: "step-011", stepNumber: 3, action: "点击搜索按钮", expectedResult: "列表显示匹配结果" },
+    ],
+    priority: "高",
+    status: "未执行",
+    relatedArIds: ["ar-002"],
+    creator: "王五",
+    createdAt: "2024-03-05 09:00:00",
+    bugCount: 0,
+    projectId: "proj-001",
+    versionId: "ver-001",
+    iterationId: "iter-002",
+  },
+  {
+    id: "tc-004",
+    code: "TC-004",
+    name: "需求详情编辑功能验证",
+    description: "验证需求详情的编辑和保存功能",
+    precondition: "有编辑权限的用户已登录",
+    steps: [
+      { id: "step-012", stepNumber: 1, action: "进入需求详情页面", expectedResult: "显示需求详情" },
+      { id: "step-013", stepNumber: 2, action: "点击编辑按钮", expectedResult: "进入编辑模式" },
+      { id: "step-014", stepNumber: 3, action: "修改需求内容", expectedResult: "内容可编辑" },
+      { id: "step-015", stepNumber: 4, action: "点击保存按钮", expectedResult: "保存成功并显示更新内容" },
+    ],
+    priority: "高",
+    status: "执行中",
+    relatedArIds: ["ar-002", "ar-003"],
+    assignee: "李四",
+    creator: "王五",
+    createdAt: "2024-03-06 10:00:00",
+    bugCount: 2,
+    projectId: "proj-001",
+    versionId: "ver-002",
+    iterationId: "iter-003",
+  },
+  {
+    id: "tc-005",
+    code: "TC-005",
+    name: "报表导出功能验证",
+    description: "验证报表数据导出为Excel功能",
+    precondition: "报表有数据",
+    steps: [
+      { id: "step-016", stepNumber: 1, action: "进入报表页面", expectedResult: "显示报表数据" },
+      { id: "step-017", stepNumber: 2, action: "点击导出按钮", expectedResult: "显示导出选项" },
+      { id: "step-018", stepNumber: 3, action: "选择Excel格式", expectedResult: "开始下载" },
+    ],
+    priority: "中",
+    status: "阻塞",
+    relatedArIds: ["ar-004"],
+    creator: "张三",
+    createdAt: "2024-03-10 11:00:00",
+    bugCount: 0,
+    projectId: "proj-002",
+    versionId: "ver-003",
+    iterationId: "iter-004",
+  },
+]
+
+// ============ Bug数据 ============
+export const mockBugs: Bug[] = [
+  {
+    id: "bug-001",
+    code: "BUG-001",
+    name: "登录失败提示信息不明确",
+    description: "当用户输入错误密码时，系统只显示"登录失败"，没有具体说明是密码错误还是账号不存在",
+    steps: "1. 打开登录页面\n2. 输入正确用户名和错误密码\n3. 点击登录按钮\n4. 观察错误提示",
+    severity: "一般",
+    status: "处理中",
+    assignee: "张三",
+    creator: "李明",
+    createdAt: "2024-03-15 15:30:00",
+    relatedTestCaseId: "tc-002",
+    relatedArId: "ar-001",
+    projectId: "proj-001",
+    versionId: "ver-001",
+    iterationId: "iter-001",
+    taskId: "task-101",
+  },
+  {
+    id: "bug-002",
+    code: "BUG-002",
+    name: "需求详情页面保存后数据未刷新",
+    description: "编辑需求详情并保存后，页面显示的仍然是旧数据，需要手动刷新才能看到更新",
+    steps: "1. 进入需求详情页\n2. 点击编辑\n3. 修改需求描述\n4. 点击保存\n5. 观察页面数据",
+    severity: "严重",
+    status: "新建",
+    assignee: "王五",
+    creator: "李四",
+    createdAt: "2024-03-18 09:00:00",
+    images: ["/uploads/bug-002-1.png", "/uploads/bug-002-2.png"],
+    relatedTestCaseId: "tc-004",
+    relatedArId: "ar-002",
+    projectId: "proj-001",
+    versionId: "ver-002",
+    iterationId: "iter-003",
+    taskId: "task-102",
+  },
+  {
+    id: "bug-003",
+    code: "BUG-003",
+    name: "需求列表分页显示异常",
+    description: "当需求列表数据超过100条时，分页组件显示错乱",
+    steps: "1. 准备超过100条需求数据\n2. 打开需求列表\n3. 观察分页组件",
+    severity: "一般",
+    status: "已修复",
+    assignee: "张三",
+    creator: "王五",
+    createdAt: "2024-03-12 14:00:00",
+    resolvedAt: "2024-03-14 10:00:00",
+    relatedArId: "ar-002",
+    projectId: "proj-001",
+    versionId: "ver-001",
+    iterationId: "iter-002",
+    taskId: "task-103",
+  },
+  {
+    id: "bug-004",
+    code: "BUG-004",
+    name: "导出Excel文件格式错误",
+    description: "导出的Excel文件用WPS打开时提示格式错误",
+    steps: "1. 进入报表页面\n2. 点击导出\n3. 用WPS打开下载的文件",
+    severity: "轻微",
+    status: "已关闭",
+    assignee: "李四",
+    creator: "张三",
+    createdAt: "2024-03-08 16:00:00",
+    resolvedAt: "2024-03-10 11:00:00",
+    relatedArId: "ar-004",
+    projectId: "proj-002",
+    versionId: "ver-003",
+    iterationId: "iter-004",
+  },
+  {
+    id: "bug-005",
+    code: "BUG-005",
+    name: "系统在IE浏览器下样式异常",
+    description: "使用IE11浏览器访问系统时，部分页面样式显示不正常",
+    steps: "1. 使用IE11打开系统\n2. 查看各页面样式",
+    severity: "建议",
+    status: "已关闭",
+    creator: "测试员",
+    createdAt: "2024-02-20 10:00:00",
+    resolvedAt: "2024-02-22 15:00:00",
+    projectId: "proj-001",
+  },
+]
+
+// 获取所有测试用例
+export function getAllTestCases(): TestCaseDetail[] {
+  return mockTestCases
+}
+
+// 根据ID获取测试用例
+export function getTestCaseById(id: string): TestCaseDetail | undefined {
+  return mockTestCases.find((tc) => tc.id === id)
+}
+
+// 根据条件筛选测试用例
+export function filterTestCases(filters: {
+  projectId?: string
+  versionId?: string
+  iterationId?: string
+  status?: TestCaseStatus
+}): TestCaseDetail[] {
+  return mockTestCases.filter((tc) => {
+    if (filters.projectId && tc.projectId !== filters.projectId) return false
+    if (filters.versionId && tc.versionId !== filters.versionId) return false
+    if (filters.iterationId && tc.iterationId !== filters.iterationId) return false
+    if (filters.status && tc.status !== filters.status) return false
+    return true
+  })
+}
+
+// 获取测试用例的操作日志
+export function getTestCaseLogs(testCaseId: string): OperationLog[] {
+  return mockOperationLogs.filter((log) => log.targetType === "testcase" && log.targetId === testCaseId)
+}
+
+// 获取所有Bug
+export function getAllBugs(): Bug[] {
+  return mockBugs
+}
+
+// 根据ID获取Bug
+export function getBugById(id: string): Bug | undefined {
+  return mockBugs.find((bug) => bug.id === id)
+}
+
+// 根据条件筛选Bug
+export function filterBugs(filters: {
+  projectId?: string
+  versionId?: string
+  iterationId?: string
+  status?: BugStatus
+  severity?: BugSeverity
+}): Bug[] {
+  return mockBugs.filter((bug) => {
+    if (filters.projectId && bug.projectId !== filters.projectId) return false
+    if (filters.versionId && bug.versionId !== filters.versionId) return false
+    if (filters.iterationId && bug.iterationId !== filters.iterationId) return false
+    if (filters.status && bug.status !== filters.status) return false
+    if (filters.severity && bug.severity !== filters.severity) return false
+    return true
+  })
+}
+
+// 获取Bug的操作日志
+export function getBugLogs(bugId: string): OperationLog[] {
+  return mockOperationLogs.filter((log) => log.targetType === "bug" && log.targetId === bugId)
+}
+
+// 根据测试用例ID获取关联的Bug
+export function getBugsByTestCaseId(testCaseId: string): Bug[] {
+  return mockBugs.filter((bug) => bug.relatedTestCaseId === testCaseId)
+}
+
+// 根据AR需求ID获取关联的测试用例
+export function getTestCasesByArId(arId: string): TestCaseDetail[] {
+  return mockTestCases.filter((tc) => tc.relatedArIds.includes(arId))
+}
+
+// 根据AR需求ID获取关联的Bug
+export function getBugsByArId(arId: string): Bug[] {
+  return mockBugs.filter((bug) => bug.relatedArId === arId)
+}

@@ -3,10 +3,11 @@
 import * as React from "react"
 import Link from "next/link"
 import { useParams } from "next/navigation"
-import { ArrowLeft, Repeat, GitBranch, FileCode, ExternalLink, ChevronRight, ChevronDown, Briefcase, History, Clock, CheckCircle2, AlertCircle } from "lucide-react"
+import { ArrowLeft, Repeat, GitBranch, FileCode, ExternalLink, ChevronRight, ChevronDown, Briefcase, History, Clock, CheckCircle2, AlertCircle, ListChecks, Plus, Trash2 } from "lucide-react"
 import { AdminLayout } from "@/components/admin-layout"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Breadcrumb,
@@ -31,6 +32,7 @@ import {
   getARDetailsByIterationId,
   getIterationRequirementCount,
   getOperationLogs,
+  mockARDetails,
 } from "@/lib/mock-data"
 import type { Iteration, Project, Version, ARRequirementDetail, OperationLog } from "@/lib/types"
 
@@ -150,6 +152,9 @@ export default function IterationDetailPage() {
   const [logs, setLogs] = React.useState<OperationLog[]>([])
   const [reqStats, setReqStats] = React.useState({ total: 0, completed: 0, inProgress: 0, blocked: 0 })
   const [logsOpen, setLogsOpen] = React.useState(false)
+  const [requirementsOpen, setRequirementsOpen] = React.useState(false)
+  const [allArs, setAllArs] = React.useState<ARRequirementDetail[]>([])
+  const [selectedArIds, setSelectedArIds] = React.useState<Set<string>>(new Set())
 
   React.useEffect(() => {
     const iter = getIterationById(iterationId)
@@ -159,9 +164,12 @@ export default function IterationDetailPage() {
       setProject(proj || null)
       const ver = getVersionById(iter.versionId)
       setVersion(ver || null)
-      setArs(getARDetailsByIterationId(iterationId))
+      const currentArs = getARDetailsByIterationId(iterationId)
+      setArs(currentArs)
       setLogs(getOperationLogs("iteration", iterationId))
       setReqStats(getIterationRequirementCount(iterationId))
+      setAllArs(mockARDetails)
+      setSelectedArIds(new Set(currentArs.map(ar => ar.id)))
     }
   }, [iterationId])
 
@@ -206,6 +214,15 @@ export default function IterationDetailPage() {
             </Button>
           </Link>
           <div className="flex items-center gap-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setRequirementsOpen(true)}
+              className="text-green-600 hover:text-green-700 border-green-200 hover:border-green-300"
+            >
+              <ListChecks className="size-4 mr-1" />
+              管理需求
+            </Button>
             <Button variant="outline" size="sm" onClick={() => setLogsOpen(true)}>
               <History className="size-4 mr-1" />
               操作日志
@@ -363,6 +380,81 @@ export default function IterationDetailPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* 需求管理弹窗 */}
+      <Dialog open={requirementsOpen} onOpenChange={setRequirementsOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>管理迭代需求 - {iteration.name}</DialogTitle>
+            <DialogDescription>
+              选择要关联到此迭代的AR需求（当前已关联 {selectedArIds.size} 个）
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 max-h-[400px] overflow-y-auto">
+            {allArs.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">暂无可用需求</div>
+            ) : (
+              <div className="space-y-2">
+                {allArs.map((ar) => {
+                  const isSelected = selectedArIds.has(ar.id)
+                  const status = arStatusConfig[ar.status] || arStatusConfig["待分析"]
+                  return (
+                    <div
+                      key={ar.id}
+                      className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                        isSelected ? "bg-blue-50 border-blue-200" : "hover:bg-gray-50"
+                      }`}
+                      onClick={() => {
+                        const newSelected = new Set(selectedArIds)
+                        if (newSelected.has(ar.id)) {
+                          newSelected.delete(ar.id)
+                        } else {
+                          newSelected.add(ar.id)
+                        }
+                        setSelectedArIds(newSelected)
+                      }}
+                    >
+                      <Checkbox checked={isSelected} />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-blue-600">{ar.code}</span>
+                          <span className="truncate">{ar.name}</span>
+                        </div>
+                        <div className="text-sm text-gray-500 mt-1">
+                          前端: {ar.frontend} | 后端: {ar.backend} | 测试: {ar.tester}
+                        </div>
+                      </div>
+                      <Badge className={status.color}>{status.label}</Badge>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setRequirementsOpen(false)}>
+              取消
+            </Button>
+            <Button
+              className="bg-blue-600 hover:bg-blue-700"
+              onClick={() => {
+                // 更新关联的需求
+                const newArs = allArs.filter(ar => selectedArIds.has(ar.id))
+                setArs(newArs)
+                setReqStats({
+                  total: newArs.length,
+                  completed: newArs.filter(ar => ar.status === "已完成").length,
+                  inProgress: newArs.filter(ar => ar.status === "进行中").length,
+                  blocked: newArs.filter(ar => ar.status === "已关闭").length,
+                })
+                setRequirementsOpen(false)
+              }}
+            >
+              保存更改
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* 操作日志弹窗 */}
       <Dialog open={logsOpen} onOpenChange={setLogsOpen}>

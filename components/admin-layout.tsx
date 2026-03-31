@@ -26,6 +26,8 @@ import {
   Layers,
   GitBranch,
   Repeat,
+  TestTube,
+  Bug,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -102,6 +104,22 @@ const requirementMenuItems: MenuItem[] = [
       },
     ],
   },
+  {
+    title: "测试管理",
+    icon: <TestTube className="size-4" />,
+    children: [
+      {
+        title: "测试用例",
+        icon: <ClipboardList className="size-4" />,
+        href: "/requirements/testing/test-cases",
+      },
+    ],
+  },
+  {
+    title: "Bug单",
+    icon: <Bug className="size-4" />,
+    href: "/requirements/bugs",
+  },
 ]
 
 // 任务管理菜单
@@ -155,9 +173,19 @@ function NavItem({ item, level = 0, collapsed }: NavItemProps) {
   const searchParams = useSearchParams()
   const [open, setOpen] = React.useState(true)
   
-  // 精确匹配：只有完全匹配时才高亮
+  // 匹配逻辑：
+  // 1. 如果href包含query参数，需要完全匹配
+  // 2. 如果href不包含query参数，则用前缀匹配（支持详情页高亮父级）
   const currentUrl = searchParams.toString() ? `${pathname}?${searchParams.toString()}` : pathname
-  const isActive = item.href === currentUrl || (item.href === pathname && !item.href?.includes("?") && !searchParams.toString())
+  const isActive = React.useMemo(() => {
+    if (!item.href) return false
+    // 如果菜单项的href有query参数，需要精确匹配
+    if (item.href.includes("?")) {
+      return item.href === currentUrl
+    }
+    // 否则用前缀匹配（详情页也能高亮父级菜单）
+    return pathname === item.href || pathname.startsWith(item.href + "/")
+  }, [item.href, pathname, currentUrl])
   
   const hasChildren = item.children && item.children.length > 0
 

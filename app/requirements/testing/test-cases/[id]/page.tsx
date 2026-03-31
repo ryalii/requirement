@@ -180,6 +180,8 @@ export default function TestCaseDetailPage() {
     
     // 添加操作日志
     const taskId = `TASK-${Date.now().toString().slice(-6)}`
+    const closedArCodes = relatedArs.map(ar => ar.code).join(", ")
+    
     setLogs([
       ...logs,
       {
@@ -189,17 +191,31 @@ export default function TestCaseDetailPage() {
         action: "测试通过",
         operator: testCase.assignee || "当前用户",
         timestamp: now,
-        description: `测试结论：${conclusion}。生成任务 ${taskId}（已完成）`,
+        description: `测试结论：${conclusion}`,
         newValue: "通过",
+      },
+      {
+        id: `log-tc-${Date.now() + 1}`,
+        targetType: "testcase",
+        targetId: testCaseId,
+        action: "生成任务",
+        operator: "系统",
+        timestamp: now,
+        description: `生成任务 ${taskId}（已完成）`,
+      },
+      {
+        id: `log-tc-${Date.now() + 2}`,
+        targetType: "testcase",
+        targetId: testCaseId,
+        action: "关闭关联需求",
+        operator: "系统",
+        timestamp: now,
+        description: `关联需求 ${closedArCodes} 已关闭`,
       },
     ])
     
-    // 关闭关联的需求
-    // 这里实际应该调用API更新需求状态，现在只是演示
-    const closedArCodes = relatedArs.map(ar => ar.code).join(", ")
-    
     setCloseOpen(false)
-    alert(`测试通过！\n\n已生成任务 ${taskId}（状态：已完成）\n关联需求 ${closedArCodes} 已关闭`)
+    alert(`测试通过！\n\n已生成任务 ${taskId}（状态：已完成）\n\n关联需求已关闭：\n${closedArCodes}`)
   }
   
   // 关闭用例 - 不通过，打开Bug创建弹窗
@@ -711,6 +727,94 @@ export default function TestCaseDetailPage() {
               disabled={!bugForm.name.trim() || !bugForm.description.trim() || !bugForm.deadline}
             >
               创建Bug
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 修改关联需求弹窗 */}
+      <Dialog open={editArOpen} onOpenChange={setEditArOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>修改关联需求 - {testCase.code}</DialogTitle>
+            <DialogDescription>
+              选择要关联到此测试用例的AR需求（当前已关联 {selectedArIds.size} 个）
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 max-h-[400px] overflow-y-auto">
+            {mockARDetails.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">暂无可用需求</div>
+            ) : (
+              <div className="space-y-2">
+                {mockARDetails.map((ar) => {
+                  const isSelected = selectedArIds.has(ar.id)
+                  return (
+                    <div
+                      key={ar.id}
+                      className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                        isSelected ? "bg-blue-50 border-blue-200" : "hover:bg-gray-50"
+                      }`}
+                      onClick={() => {
+                        const newSelected = new Set(selectedArIds)
+                        if (newSelected.has(ar.id)) {
+                          newSelected.delete(ar.id)
+                        } else {
+                          newSelected.add(ar.id)
+                        }
+                        setSelectedArIds(newSelected)
+                      }}
+                    >
+                      <Checkbox checked={isSelected} />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-blue-600">{ar.code}</span>
+                          <span className="truncate">{ar.name}</span>
+                        </div>
+                        <div className="text-sm text-gray-500 mt-1">
+                          前端: {ar.frontend} | 后端: {ar.backend} | 测试: {ar.tester}
+                        </div>
+                      </div>
+                      <Badge className={
+                        ar.status === "已完成" ? "bg-green-100 text-green-700" :
+                        ar.status === "进行中" ? "bg-blue-100 text-blue-700" :
+                        "bg-gray-100 text-gray-700"
+                      }>
+                        {ar.status}
+                      </Badge>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditArOpen(false)}>取消</Button>
+            <Button
+              className="bg-blue-600 hover:bg-blue-700"
+              onClick={() => {
+                // 更新测试用例的关联需求
+                setTestCase({
+                  ...testCase,
+                  relatedArIds: Array.from(selectedArIds),
+                })
+                // 添加操作日志
+                const now = new Date().toISOString().slice(0, 19).replace("T", " ")
+                setLogs([
+                  ...logs,
+                  {
+                    id: `log-tc-${Date.now()}`,
+                    targetType: "testcase",
+                    targetId: testCaseId,
+                    action: "修改关联需求",
+                    operator: "当前用户",
+                    timestamp: now,
+                    description: `关联需求数量变更为 ${selectedArIds.size} 个`,
+                  },
+                ])
+                setEditArOpen(false)
+              }}
+            >
+              保存更改
             </Button>
           </DialogFooter>
         </DialogContent>

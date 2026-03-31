@@ -1,4 +1,4 @@
-import type { Requirement, TestCase, Task, TaskHistory, Project, Version, Iteration, ARRequirementDetail, ProjectMember, OperationLog } from "./types"
+import type { Requirement, TestCase, Task, TaskHistory, Project, Version, Iteration, ARRequirementDetail, ProjectMember, OperationLog, TestCaseDetail, TestStep, Bug, BugStatus, BugSeverity, TestCaseStatus } from "./types"
 
 // 测试用例数据
 export const mockTestCases: TestCase[] = [
@@ -1042,9 +1042,7 @@ export function getIterationRequirementCount(iterationId: string): { total: numb
   return { total, completed, inProgress, blocked }
 }
 
-// ============ 测试用例详情数据（TestCaseDetail）============
-import type { TestCaseDetail, TestStep, Bug, BugStatus, BugSeverity, TestCaseStatus } from "./types"
-
+// ============ 测试用例详情数据 ============
 export const mockTestCaseDetails: TestCaseDetail[] = [
   {
     id: "tc-001",

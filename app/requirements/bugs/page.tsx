@@ -4,7 +4,7 @@ import * as React from "react"
 import Link from "next/link"
 import { 
   Plus, Search, RotateCcw, Pencil, Trash2, Download, 
-  Filter, Bug, AlertTriangle, CheckCircle2, Clock
+  Filter, Bug, AlertTriangle, CheckCircle2, Clock, Upload, X, ImageIcon
 } from "lucide-react"
 import { AdminLayout } from "@/components/admin-layout"
 import { Button } from "@/components/ui/button"
@@ -95,6 +95,7 @@ export default function BugsPage() {
     severity: "一般" as BugSeverity,
     assignee: "",
     deadline: "",
+    images: [] as string[],
   })
 
   React.useEffect(() => {
@@ -135,6 +136,7 @@ export default function BugsPage() {
       severity: "一般",
       assignee: "",
       deadline: "",
+      images: [],
     })
     setFormOpen(true)
   }
@@ -150,8 +152,32 @@ export default function BugsPage() {
       severity: bug.severity,
       assignee: bug.assignee || "",
       deadline: "",
+      images: bug.images || [],
     })
     setFormOpen(true)
+  }
+
+  // 处理图片上传
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files) return
+    
+    // 模拟上传，实际项目应该上传到服务器
+    const newImages = Array.from(files).map((file, index) => {
+      return URL.createObjectURL(file)
+    })
+    setFormData({
+      ...formData,
+      images: [...formData.images, ...newImages],
+    })
+  }
+
+  // 删除图片
+  const handleRemoveImage = (index: number) => {
+    setFormData({
+      ...formData,
+      images: formData.images.filter((_, i) => i !== index),
+    })
   }
 
   // 删除
@@ -174,7 +200,7 @@ export default function BugsPage() {
     if (isEdit && selectedBug) {
       setBugs(bugs.map(b => 
         b.id === selectedBug.id 
-          ? { ...b, ...formData }
+          ? { ...b, ...formData, images: formData.images }
           : b
       ))
     } else {
@@ -189,10 +215,11 @@ export default function BugsPage() {
         assignee: formData.assignee || undefined,
         creator: "当前用户",
         createdAt: new Date().toISOString().slice(0, 19).replace("T", " "),
+        images: formData.images,
         taskId: `task-${Date.now()}`,
       }
       setBugs([newBug, ...bugs])
-      alert(`Bug ${newBug.code} 已创建，同时生成任务，截止日期：${formData.deadline}`)
+      alert(`Bug ${newBug.code} 已创建（含${formData.images.length}张截图），同时生成任务，截止日期：${formData.deadline}`)
     }
     setFormOpen(false)
   }
@@ -531,6 +558,51 @@ export default function BugsPage() {
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+            {/* 图片上传 */}
+            <div className="space-y-2">
+              <Label>问题截图</Label>
+              <div className="border-2 border-dashed rounded-lg p-4">
+                <input
+                  type="file"
+                  id="bug-images"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={handleImageUpload}
+                />
+                <label
+                  htmlFor="bug-images"
+                  className="flex flex-col items-center justify-center cursor-pointer py-4 hover:bg-gray-50 rounded transition-colors"
+                >
+                  <Upload className="size-8 text-gray-400 mb-2" />
+                  <span className="text-sm text-gray-500">点击上传截图</span>
+                  <span className="text-xs text-gray-400">支持 jpg, png 格式</span>
+                </label>
+              </div>
+              {/* 已上传图片预览 */}
+              {formData.images.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {formData.images.map((img, index) => (
+                    <div key={index} className="relative group">
+                      <div className="w-20 h-20 border rounded overflow-hidden bg-gray-100 flex items-center justify-center">
+                        {img.startsWith("blob:") ? (
+                          <img src={img} alt={`截图${index + 1}`} className="w-full h-full object-cover" />
+                        ) : (
+                          <ImageIcon className="size-8 text-gray-400" />
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveImage(index)}
+                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X className="size-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
             {!isEdit && (
               <div className="space-y-2">

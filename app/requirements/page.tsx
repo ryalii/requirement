@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { useSearchParams } from "next/navigation"
-import { Search, RotateCcw, Plus, ChevronDown, Filter, ChevronLeft, ChevronRight } from "lucide-react"
+import { Search, RotateCcw, Plus, ChevronDown, Filter, ChevronLeft, ChevronRight, Download } from "lucide-react"
 import { AdminLayout } from "@/components/admin-layout"
 import { RequirementsTable } from "@/components/requirements-table"
 import { Button } from "@/components/ui/button"
@@ -82,6 +82,40 @@ export default function RequirementsPage() {
     setRequirements((prev) => prev.filter((r) => r.id !== id))
   }
 
+  // 导出Excel功能
+  const handleExport = () => {
+    // 构建CSV数据
+    const headers = ["需求编号", "需求名称", "需求类型", "项目", "来源客户", "优先级", "状态", "期望解决时间", "创建时间"]
+    const rows = filteredRequirements.map(req => [
+      req.code,
+      req.name,
+      req.type,
+      req.project || "",
+      req.customer,
+      req.priority,
+      req.status,
+      req.expectedDate,
+      req.createdAt,
+    ])
+
+    const csvContent = [
+      headers.join(","),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(","))
+    ].join("\n")
+
+    // 添加BOM以支持中文
+    const BOM = "\uFEFF"
+    const blob = new Blob([BOM + csvContent], { type: "text/csv;charset=utf-8;" })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement("a")
+    link.href = url
+    link.download = `需求列表_${typeFromUrl || "全部"}_${new Date().toISOString().split("T")[0]}.csv`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  }
+
   // 分页计算
   const totalPages = Math.ceil(filteredRequirements.length / pageSize)
   const paginatedRequirements = filteredRequirements.slice(
@@ -134,21 +168,24 @@ export default function RequirementsPage() {
 
         {/* 筛选区域 */}
         <div className="flex flex-wrap items-center gap-4 bg-white p-4 rounded-lg border">
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-600 whitespace-nowrap">需求类型</span>
-            <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger className="w-44">
-                <SelectValue placeholder="请选择需求类型" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">全部类型</SelectItem>
-                <SelectItem value="LMT">LMT - 市场需求</SelectItem>
-                <SelectItem value="IR">IR - 原始需求</SelectItem>
-                <SelectItem value="SR">SR - 系统需求</SelectItem>
-                <SelectItem value="AR">AR - 软件需求</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          {/* 只有在概览页面显示类型筛选 */}
+          {!typeFromUrl && (
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-600 whitespace-nowrap">需求类型</span>
+              <Select value={typeFilter} onValueChange={setTypeFilter}>
+                <SelectTrigger className="w-44">
+                  <SelectValue placeholder="请选择需求类型" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">全部类型</SelectItem>
+                  <SelectItem value="LMT">LMT - 市场需求</SelectItem>
+                  <SelectItem value="IR">IR - 原始需求</SelectItem>
+                  <SelectItem value="SR">SR - 系统需求</SelectItem>
+                  <SelectItem value="AR">AR - 软件需求</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           <div className="flex items-center gap-2">
             <span className="text-sm text-gray-600 whitespace-nowrap">状态</span>
@@ -197,7 +234,15 @@ export default function RequirementsPage() {
             </Button>
           </div>
 
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-2">
+            <Button 
+              variant="outline" 
+              className="gap-1"
+              onClick={handleExport}
+            >
+              <Download className="size-4" />
+              导出 Excel
+            </Button>
             <Button className="gap-1 bg-blue-600 hover:bg-blue-700">
               <Plus className="size-4" />
               新增
@@ -209,6 +254,7 @@ export default function RequirementsPage() {
         <RequirementsTable
           requirements={paginatedRequirements}
           onDelete={handleDelete}
+          filterType={typeFromUrl || undefined}
         />
 
         {/* 分页 - 中文版本，更宽松的布局 */}
@@ -217,9 +263,9 @@ export default function RequirementsPage() {
             共 <span className="font-medium text-gray-900">{filteredRequirements.length}</span> 条记录
           </div>
           
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-8">
             {/* 每页条数选择 */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <span className="text-sm text-gray-600 whitespace-nowrap">每页显示</span>
               <Select value={String(pageSize)} onValueChange={(v) => { setPageSize(Number(v)); setCurrentPage(1); }}>
                 <SelectTrigger className="w-24">
@@ -235,13 +281,13 @@ export default function RequirementsPage() {
             </div>
 
             {/* 分页按钮 */}
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-2">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                 disabled={currentPage === 1}
-                className="h-9 px-3 gap-1"
+                className="h-9 px-4 gap-1"
               >
                 <ChevronLeft className="size-4" />
                 上一页
@@ -250,13 +296,13 @@ export default function RequirementsPage() {
               {getPageNumbers().map((page, index) => (
                 <React.Fragment key={index}>
                   {page === "..." ? (
-                    <span className="px-2 text-gray-400">...</span>
+                    <span className="px-3 text-gray-400">...</span>
                   ) : (
                     <Button
                       variant={currentPage === page ? "default" : "outline"}
                       size="sm"
                       onClick={() => setCurrentPage(page as number)}
-                      className={`h-9 w-9 p-0 ${
+                      className={`h-9 w-10 p-0 ${
                         currentPage === page 
                           ? "bg-blue-600 hover:bg-blue-700 text-white" 
                           : ""
@@ -273,7 +319,7 @@ export default function RequirementsPage() {
                 size="sm"
                 onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
                 disabled={currentPage === totalPages || totalPages === 0}
-                className="h-9 px-3 gap-1"
+                className="h-9 px-4 gap-1"
               >
                 下一页
                 <ChevronRight className="size-4" />
@@ -281,7 +327,7 @@ export default function RequirementsPage() {
             </div>
 
             {/* 跳转输入 */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <span className="text-sm text-gray-600 whitespace-nowrap">跳转至</span>
               <Input
                 type="number"
@@ -294,7 +340,7 @@ export default function RequirementsPage() {
                     setCurrentPage(page)
                   }
                 }}
-                className="w-16 h-9 text-center"
+                className="w-20 h-9 text-center"
               />
               <span className="text-sm text-gray-600 whitespace-nowrap">页</span>
             </div>

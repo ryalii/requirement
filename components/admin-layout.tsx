@@ -2,9 +2,8 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useSearchParams } from "next/navigation"
 import {
-  Home,
   FileText,
   ChevronDown,
   ChevronRight,
@@ -16,6 +15,7 @@ import {
   FileCog,
   FileCode,
   FileCheck,
+  LayoutGrid,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -35,9 +35,9 @@ interface MenuItem {
 
 const menuItems: MenuItem[] = [
   {
-    title: "首页",
-    icon: <Home className="size-4" />,
-    href: "/",
+    title: "工作台",
+    icon: <LayoutGrid className="size-4" />,
+    href: "/workspace",
   },
   {
     title: "需求管理",
@@ -80,8 +80,13 @@ interface NavItemProps {
 
 function NavItem({ item, level = 0, collapsed }: NavItemProps) {
   const pathname = usePathname()
+  const searchParams = useSearchParams()
   const [open, setOpen] = React.useState(true)
-  const isActive = item.href === pathname || (item.href && pathname.startsWith(item.href.split("?")[0]) && item.href.includes(pathname))
+  
+  // 精确匹配：只有完全匹配时才高亮
+  const currentUrl = searchParams.toString() ? `${pathname}?${searchParams.toString()}` : pathname
+  const isActive = item.href === currentUrl || item.href === pathname && !item.href?.includes("?") && !searchParams.toString()
+  
   const hasChildren = item.children && item.children.length > 0
 
   if (hasChildren) {
@@ -91,7 +96,7 @@ function NavItem({ item, level = 0, collapsed }: NavItemProps) {
           <button
             className={cn(
               "flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors",
-              "hover:bg-blue-50 hover:text-blue-600",
+              "hover:bg-blue-50 hover:text-blue-600 text-gray-600",
               level > 0 && "pl-8"
             )}
           >
@@ -130,7 +135,9 @@ function NavItem({ item, level = 0, collapsed }: NavItemProps) {
       className={cn(
         "flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors",
         "hover:bg-blue-50 hover:text-blue-600",
-        isActive && "bg-blue-50 text-blue-600 border-l-2 border-blue-600",
+        isActive 
+          ? "bg-blue-50 text-blue-600 border-l-2 border-blue-600" 
+          : "text-gray-600",
         level > 0 && "pl-8"
       )}
     >
@@ -146,13 +153,18 @@ interface AdminLayoutProps {
 
 export function AdminLayout({ children }: AdminLayoutProps) {
   const [sidebarCollapsed, setSidebarCollapsed] = React.useState(false)
+  const pathname = usePathname()
+
+  // 判断顶部导航的激活状态
+  const isWorkspaceActive = pathname === "/workspace"
+  const isRequirementsActive = pathname.startsWith("/requirements")
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* 顶部导航栏 */}
       <header className="h-14 bg-slate-800 text-white flex items-center justify-between px-4 shrink-0">
         <div className="flex items-center gap-6">
-          <Link href="/" className="flex items-center gap-2 font-semibold">
+          <Link href="/workspace" className="flex items-center gap-2 font-semibold">
             <div className="size-8 bg-gradient-to-br from-blue-500 to-cyan-400 rounded-lg flex items-center justify-center">
               <svg viewBox="0 0 24 24" className="size-5 text-white" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2" />
@@ -165,8 +177,24 @@ export function AdminLayout({ children }: AdminLayoutProps) {
           </Link>
           <nav className="flex items-center gap-1 ml-4">
             <Link
+              href="/workspace"
+              className={cn(
+                "px-4 py-2 text-sm rounded-md transition-colors",
+                isWorkspaceActive 
+                  ? "bg-blue-600" 
+                  : "hover:bg-slate-700"
+              )}
+            >
+              工作台
+            </Link>
+            <Link
               href="/requirements"
-              className="px-4 py-2 text-sm bg-blue-600 rounded-md hover:bg-blue-500 transition-colors"
+              className={cn(
+                "px-4 py-2 text-sm rounded-md transition-colors",
+                isRequirementsActive 
+                  ? "bg-blue-600" 
+                  : "hover:bg-slate-700"
+              )}
             >
               需求
             </Link>

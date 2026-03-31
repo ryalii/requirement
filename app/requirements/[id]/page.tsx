@@ -22,14 +22,36 @@ import {
   Target,
   CheckSquare,
   AlertCircle,
+  Send,
+  Users,
+  History,
 } from "lucide-react"
 import { AdminLayout } from "@/components/admin-layout"
 import { RequirementTree } from "@/components/requirement-tree"
 import { TestCasesTable } from "@/components/test-cases-table"
+import { RequirementFormDialog } from "@/components/requirement-form-dialog"
+import { RequirementHistoryDialog } from "@/components/requirement-history-dialog"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -56,6 +78,13 @@ const typeConfig: Record<RequirementType, {
   label: string
   description: string
 }> = {
+  LMT: {
+    color: "text-purple-700",
+    bgColor: "bg-purple-50",
+    borderColor: "border-purple-200",
+    label: "市场需求 (LMT)",
+    description: "来自市场的原始需求，需要转换为IR需求进行分析"
+  },
   IR: { 
     color: "text-blue-700", 
     bgColor: "bg-blue-50", 
@@ -102,7 +131,11 @@ function RequirementTraceCard({
   relation: "parent" | "child"
   icon: React.ElementType
 }) {
-  const config = typeConfig[requirement.type]
+  const config = typeConfig[requirement.type] || {
+    color: "text-gray-700",
+    bgColor: "bg-gray-50",
+    borderColor: "border-gray-200",
+  }
   const status = statusConfig[requirement.status] || statusConfig["待分析"]
   
   return (
@@ -159,7 +192,11 @@ function RequirementTraceCard({
 
 // 子需求列表项组件
 function ChildRequirementItem({ requirement }: { requirement: Requirement }) {
-  const config = typeConfig[requirement.type]
+  const config = typeConfig[requirement.type] || {
+    color: "text-gray-700",
+    bgColor: "bg-gray-50",
+    borderColor: "border-gray-200",
+  }
   const status = statusConfig[requirement.status] || statusConfig["待分析"]
   
   return (
@@ -188,10 +225,95 @@ function ChildRequirementItem({ requirement }: { requirement: Requirement }) {
   )
 }
 
+// 转任务对话框
+function ConvertToTaskDialog({
+  open,
+  onOpenChange,
+  requirement,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  requirement: Requirement
+}) {
+  const [assignee, setAssignee] = React.useState("")
+  const [deadline, setDeadline] = React.useState(requirement.expectedDate)
+  const [saving, setSaving] = React.useState(false)
+
+  const handleSubmit = async () => {
+    if (!assignee) {
+      alert("请选择接收人")
+      return
+    }
+    setSaving(true)
+    await new Promise(resolve => setTimeout(resolve, 500))
+    setSaving(false)
+    onOpenChange(false)
+    alert("任务创建成功！")
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Send className="size-5 text-purple-600" />
+            转为任务
+          </DialogTitle>
+          <DialogDescription>
+            将LMT需求 {requirement.code} 转换为任务并分配给指定人员
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label>需求名称</Label>
+            <Input value={requirement.name} disabled />
+          </div>
+          <div className="space-y-2">
+            <Label>接收人 <span className="text-red-500">*</span></Label>
+            <Select value={assignee} onValueChange={setAssignee}>
+              <SelectTrigger>
+                <SelectValue placeholder="请选择接收人" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="张三">张三</SelectItem>
+                <SelectItem value="李四">李四</SelectItem>
+                <SelectItem value="王五">王五</SelectItem>
+                <SelectItem value="赵六">赵六</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>期望解决时间</Label>
+            <Input
+              type="date"
+              value={deadline}
+              onChange={(e) => setDeadline(e.target.value)}
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>取消</Button>
+          <Button 
+            onClick={handleSubmit} 
+            disabled={saving}
+            className="bg-purple-600 hover:bg-purple-700"
+          >
+            {saving ? "创建中..." : "确认创建"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 export default function RequirementDetailPage() {
   const params = useParams()
   const router = useRouter()
   const id = params.id as string
+
+  const [editDialogOpen, setEditDialogOpen] = React.useState(false)
+  const [historyDialogOpen, setHistoryDialogOpen] = React.useState(false)
+  const [convertTaskDialogOpen, setConvertTaskDialogOpen] = React.useState(false)
 
   const requirement = getRequirementById(id)
 
@@ -212,13 +334,70 @@ export default function RequirementDetailPage() {
     )
   }
 
-  const config = typeConfig[requirement.type]
+  // 添加安全回退，防止未知类型导致崩溃
+  const config = typeConfig[requirement.type] || {
+    color: "text-gray-700",
+    bgColor: "bg-gray-50",
+    borderColor: "border-gray-200",
+    label: "未知类型",
+    description: "未知需求类型"
+  }
   const status = statusConfig[requirement.status] || statusConfig["待分析"]
   const priority = priorityConfig[requirement.priority] || priorityConfig["中"]
 
   // 根据需求类型获取不同的关联数据和渲染内容
   const renderRelatedContent = () => {
     switch (requirement.type) {
+      case "LMT": {
+        // LMT需求展示简单的需求描述
+        return (
+          <div className="space-y-6">
+            <Card className="border-purple-200 bg-purple-50/30">
+              <CardContent className="pt-4">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 rounded-lg bg-purple-100">
+                    <FileText className="size-5 text-purple-600" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-purple-800">市场需求说明</h4>
+                    <p className="text-sm text-purple-700 mt-1">
+                      此LMT需求来自市场部门，需要进行分析后转换为IR需求进行后续处理。
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* 需求详细描述 */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">需求详细描述</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">
+                  {requirement.description || "暂无详细描述"}
+                </p>
+              </CardContent>
+            </Card>
+
+            {/* 操作按钮 */}
+            <div className="flex gap-3">
+              <Button 
+                onClick={() => setConvertTaskDialogOpen(true)}
+                className="gap-2 bg-purple-600 hover:bg-purple-700"
+              >
+                <Send className="size-4" />
+                转为任务
+              </Button>
+              <Button variant="outline" className="gap-2">
+                <ArrowUpRight className="size-4" />
+                转换为IR需求
+              </Button>
+            </div>
+          </div>
+        )
+      }
+
       case "IR": {
         // IR显示完整的树形结构（IR -> SR -> AR）
         const treeData = buildIRTree(requirement.id)
@@ -490,11 +669,7 @@ export default function RequirementDetailPage() {
         <Breadcrumb>
           <BreadcrumbList>
             <BreadcrumbItem>
-              <BreadcrumbLink href="/">首页</BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator>/</BreadcrumbSeparator>
-            <BreadcrumbItem>
-              <BreadcrumbLink href="/requirements">需求</BreadcrumbLink>
+              <BreadcrumbLink href="/workspace">首页</BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator>/</BreadcrumbSeparator>
             <BreadcrumbItem>
@@ -518,11 +693,25 @@ export default function RequirementDetailPage() {
             返回列表
           </Button>
           <div className="flex items-center gap-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="gap-1"
+              onClick={() => setHistoryDialogOpen(true)}
+            >
+              <History className="size-4" />
+              变更历史
+            </Button>
             <Button variant="outline" size="sm" className="gap-1">
               <Share2 className="size-4" />
               分享
             </Button>
-            <Button variant="outline" size="sm" className="gap-1">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="gap-1"
+              onClick={() => setEditDialogOpen(true)}
+            >
               <Pencil className="size-4" />
               编辑
             </Button>
@@ -543,86 +732,103 @@ export default function RequirementDetailPage() {
             <div className="flex items-start justify-between">
               <div className="space-y-3">
                 <div className="flex items-center gap-3">
-                  <Badge
-                    variant="outline"
+                  <Badge 
+                    variant="outline" 
                     className={`text-sm font-semibold px-3 py-1 ${config.bgColor} ${config.color} ${config.borderColor}`}
                   >
                     {requirement.type}
                   </Badge>
-                  <span className="text-xl font-bold text-gray-800">
-                    {requirement.code}
+                  <span className={`px-2.5 py-1 rounded-md text-xs font-medium ${status.bg} ${status.text}`}>
+                    {requirement.status}
+                  </span>
+                  <span className={`px-2.5 py-1 rounded-md text-xs font-medium ${priority.bg} ${priority.text}`}>
+                    {requirement.priority}优先级
                   </span>
                 </div>
-                <h1 className="text-2xl font-semibold text-gray-900">
-                  {requirement.name}
-                </h1>
-                <p className="text-sm text-gray-600">
-                  {config.description}
-                </p>
-              </div>
-              <div className="flex flex-col items-end gap-2">
-                <span className={`px-3 py-1.5 rounded-lg text-sm font-semibold ${status.bg} ${status.text}`}>
-                  {requirement.status}
-                </span>
-                <span className={`px-2.5 py-1 rounded-md text-xs font-medium ${priority.bg} ${priority.text}`}>
-                  优先级: {requirement.priority}
-                </span>
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-900">{requirement.name}</h1>
+                  <p className={`text-sm mt-1 ${config.color}`}>{requirement.code}</p>
+                </div>
               </div>
             </div>
           </CardHeader>
-          <CardContent className="pt-6 space-y-6">
-            {/* 基本信息 */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="flex items-center gap-2.5 text-sm p-3 rounded-lg bg-gray-50">
-                <FileText className="size-4 text-gray-400" />
+          <CardContent className="pt-6">
+            <div className="grid md:grid-cols-4 gap-6">
+              <div className="flex items-start gap-3">
+                <Building2 className="size-5 text-gray-400 mt-0.5" />
                 <div>
-                  <span className="text-gray-500 block text-xs">类型</span>
-                  <span className="text-gray-700 font-medium">{config.label}</span>
+                  <div className="text-sm text-gray-500">来源客户</div>
+                  <div className="font-medium">{requirement.customer}</div>
                 </div>
               </div>
-              <div className="flex items-center gap-2.5 text-sm p-3 rounded-lg bg-gray-50">
-                <Building2 className="size-4 text-gray-400" />
+              {requirement.project && (
+                <div className="flex items-start gap-3">
+                  <Target className="size-5 text-gray-400 mt-0.5" />
+                  <div>
+                    <div className="text-sm text-gray-500">所属项目</div>
+                    <div className="font-medium">{requirement.project}</div>
+                  </div>
+                </div>
+              )}
+              <div className="flex items-start gap-3">
+                <Calendar className="size-5 text-gray-400 mt-0.5" />
                 <div>
-                  <span className="text-gray-500 block text-xs">来源客户</span>
-                  <span className="text-gray-700 font-medium">{requirement.customer}</span>
+                  <div className="text-sm text-gray-500">期望解决时间</div>
+                  <div className="font-medium">{requirement.expectedDate}</div>
                 </div>
               </div>
-              <div className="flex items-center gap-2.5 text-sm p-3 rounded-lg bg-gray-50">
-                <Calendar className="size-4 text-gray-400" />
+              <div className="flex items-start gap-3">
+                <Clock className="size-5 text-gray-400 mt-0.5" />
                 <div>
-                  <span className="text-gray-500 block text-xs">期望解决时间</span>
-                  <span className="text-gray-700 font-medium">{requirement.expectedDate}</span>
-                </div>
-              </div>
-              <div className="flex items-center gap-2.5 text-sm p-3 rounded-lg bg-gray-50">
-                <Clock className="size-4 text-gray-400" />
-                <div>
-                  <span className="text-gray-500 block text-xs">创建时间</span>
-                  <span className="text-gray-700 font-medium">{requirement.createdAt}</span>
+                  <div className="text-sm text-gray-500">创建时间</div>
+                  <div className="font-medium">{requirement.createdAt}</div>
                 </div>
               </div>
             </div>
-
-            <Separator />
-
-            {/* 描述 */}
-            {requirement.description && (
-              <div className="space-y-2">
-                <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                  <FileText className="size-4" />
-                  需求描述
-                </h3>
-                <p className="text-sm text-gray-600 leading-relaxed bg-gray-50 p-4 rounded-lg border">
-                  {requirement.description}
-                </p>
-              </div>
+            
+            {requirement.description && requirement.type !== "LMT" && (
+              <>
+                <Separator className="my-6" />
+                <div>
+                  <h3 className="font-semibold text-gray-700 mb-2">需求描述</h3>
+                  <p className="text-gray-600 whitespace-pre-wrap">{requirement.description}</p>
+                </div>
+              </>
             )}
           </CardContent>
         </Card>
 
-        {/* 关联内容区域 */}
+        {/* 根据需求类型渲染不同的关联内容 */}
         {renderRelatedContent()}
       </div>
+
+      {/* 编辑对话框 */}
+      <RequirementFormDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        mode="edit"
+        requirement={requirement}
+        onSave={(data) => {
+          console.log("保存需求:", data)
+          setEditDialogOpen(false)
+        }}
+      />
+
+      {/* 变更历史对话框 */}
+      <RequirementHistoryDialog
+        open={historyDialogOpen}
+        onOpenChange={setHistoryDialogOpen}
+        requirementCode={requirement.code}
+      />
+
+      {/* 转任务对话框 */}
+      {requirement.type === "LMT" && (
+        <ConvertToTaskDialog
+          open={convertTaskDialogOpen}
+          onOpenChange={setConvertTaskDialogOpen}
+          requirement={requirement}
+        />
+      )}
     </AdminLayout>
   )
 }

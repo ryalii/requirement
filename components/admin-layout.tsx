@@ -16,6 +16,12 @@ import {
   FileCode,
   FileCheck,
   LayoutGrid,
+  ListTodo,
+  ClipboardList,
+  LogOut,
+  Settings,
+  Key,
+  User,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -25,6 +31,23 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 
 interface MenuItem {
   title: string
@@ -72,6 +95,21 @@ const requirementMenuItems: MenuItem[] = [
         title: "AR需求",
         icon: <FileCheck className="size-4" />,
         href: "/requirements?type=AR",
+      },
+    ],
+  },
+]
+
+// 任务管理菜单
+const taskMenuItems: MenuItem[] = [
+  {
+    title: "任务管理",
+    icon: <ListTodo className="size-4" />,
+    children: [
+      {
+        title: "概览",
+        icon: <LayoutDashboard className="size-4" />,
+        href: "/tasks",
       },
     ],
   },
@@ -152,24 +190,122 @@ function NavItem({ item, level = 0, collapsed }: NavItemProps) {
   )
 }
 
+// 修改密码对话框
+function ChangePasswordDialog({
+  open,
+  onOpenChange,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}) {
+  const [saving, setSaving] = React.useState(false)
+  const [oldPassword, setOldPassword] = React.useState("")
+  const [newPassword, setNewPassword] = React.useState("")
+  const [confirmPassword, setConfirmPassword] = React.useState("")
+
+  const handleSubmit = async () => {
+    if (!oldPassword || !newPassword || !confirmPassword) {
+      alert("请填写完整信息")
+      return
+    }
+    if (newPassword !== confirmPassword) {
+      alert("两次输入的新密码不一致")
+      return
+    }
+    if (newPassword.length < 6) {
+      alert("新密码长度不能少于6位")
+      return
+    }
+    setSaving(true)
+    await new Promise(resolve => setTimeout(resolve, 500))
+    setSaving(false)
+    setOldPassword("")
+    setNewPassword("")
+    setConfirmPassword("")
+    onOpenChange(false)
+    alert("密码修改成功！")
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Key className="size-5 text-blue-600" />
+            修改密码
+          </DialogTitle>
+          <DialogDescription>
+            请输入旧密码和新密码进行修改
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label>旧密码 <span className="text-red-500">*</span></Label>
+            <Input
+              type="password"
+              value={oldPassword}
+              onChange={(e) => setOldPassword(e.target.value)}
+              placeholder="请输入旧密码"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>新密码 <span className="text-red-500">*</span></Label>
+            <Input
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="请输入新密码（至少6位）"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>确认新密码 <span className="text-red-500">*</span></Label>
+            <Input
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="请再次输入新密码"
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>取消</Button>
+          <Button onClick={handleSubmit} disabled={saving} className="bg-blue-600 hover:bg-blue-700">
+            {saving ? "保存中..." : "确认修改"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 interface AdminLayoutProps {
   children: React.ReactNode
 }
 
 export function AdminLayout({ children }: AdminLayoutProps) {
   const [sidebarCollapsed, setSidebarCollapsed] = React.useState(false)
+  const [changePasswordOpen, setChangePasswordOpen] = React.useState(false)
   const pathname = usePathname()
 
-  // 判断当前是在工作台还是需求管理区域
+  // 判断当前是在哪个区域
   const isWorkspaceArea = pathname === "/workspace"
   const isRequirementsArea = pathname.startsWith("/requirements")
+  const isTasksArea = pathname.startsWith("/tasks")
 
   // 判断顶部导航的激活状态
   const isWorkspaceActive = isWorkspaceArea
   const isRequirementsActive = isRequirementsArea
+  const isTasksActive = isTasksArea
 
   // 根据当前区域选择不同的菜单
-  const currentMenuItems = isWorkspaceArea ? workspaceMenuItems : requirementMenuItems
+  const getCurrentMenuItems = () => {
+    if (isWorkspaceArea) return workspaceMenuItems
+    if (isRequirementsArea) return requirementMenuItems
+    if (isTasksArea) return taskMenuItems
+    return workspaceMenuItems
+  }
+
+  const currentMenuItems = getCurrentMenuItems()
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -210,19 +346,54 @@ export function AdminLayout({ children }: AdminLayoutProps) {
             >
               需求管理
             </Link>
+            <Link
+              href="/tasks"
+              className={cn(
+                "px-4 py-2 text-sm rounded-md transition-colors",
+                isTasksActive 
+                  ? "bg-blue-600" 
+                  : "hover:bg-slate-700"
+              )}
+            >
+              任务管理
+            </Link>
           </nav>
         </div>
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" className="text-white hover:bg-slate-700">
             <RefreshCw className="size-4" />
           </Button>
-          <div className="flex items-center gap-2">
-            <Avatar className="size-8">
-              <AvatarImage src="" />
-              <AvatarFallback className="bg-blue-600 text-xs">管</AvatarFallback>
-            </Avatar>
-            <span className="text-sm">admin01</span>
-          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="flex items-center gap-2 hover:bg-slate-700 rounded-md px-2 py-1 transition-colors">
+                <Avatar className="size-8">
+                  <AvatarImage src="" />
+                  <AvatarFallback className="bg-blue-600 text-xs">管</AvatarFallback>
+                </Avatar>
+                <span className="text-sm">admin01</span>
+                <ChevronDown className="size-4 text-gray-400" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem className="gap-2">
+                <User className="size-4" />
+                个人中心
+              </DropdownMenuItem>
+              <DropdownMenuItem className="gap-2" onClick={() => setChangePasswordOpen(true)}>
+                <Key className="size-4" />
+                修改密码
+              </DropdownMenuItem>
+              <DropdownMenuItem className="gap-2">
+                <Settings className="size-4" />
+                系统设置
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem className="gap-2 text-red-600">
+                <LogOut className="size-4" />
+                退出登录
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </header>
 
@@ -264,6 +435,12 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       <footer className="h-8 bg-white border-t flex items-center justify-center text-xs text-gray-500 shrink-0">
         Copyright © 2026 研发需求管理系统 All rights reserved. v1.0
       </footer>
+
+      {/* 修改密码对话框 */}
+      <ChangePasswordDialog 
+        open={changePasswordOpen} 
+        onOpenChange={setChangePasswordOpen} 
+      />
     </div>
   )
 }

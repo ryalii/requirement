@@ -1,4 +1,4 @@
-import type { Requirement, TestCase } from "./types"
+import type { Requirement, TestCase, Task, TaskHistory } from "./types"
 
 // 测试用例数据
 export const mockTestCases: TestCase[] = [
@@ -345,4 +345,170 @@ export function buildIRTree(irId: string) {
 export function getRequirementsByType(type: string): Requirement[] {
   if (type === "all") return mockRequirements
   return mockRequirements.filter((r) => r.type === type)
+}
+
+// 任务数据
+export const mockTasks: Task[] = [
+  {
+    id: "task-001",
+    code: "TASK-2024-001",
+    name: "用户登录功能分析",
+    type: "需求",
+    assignee: "张三",
+    creator: "admin01",
+    deadline: "2024-04-15",
+    createdAt: "2024-03-20",
+    status: "进行中",
+    description: "分析用户登录功能的需求，包括多种登录方式的支持。",
+    relatedRequirementId: "lmt-001",
+  },
+  {
+    id: "task-002",
+    code: "TASK-2024-002",
+    name: "接口自动化测试",
+    type: "测试",
+    assignee: "李四",
+    creator: "admin01",
+    deadline: "2024-04-10",
+    createdAt: "2024-03-18",
+    status: "进行中",
+    description: "完成用户管理模块的接口自动化测试用例编写。",
+  },
+  {
+    id: "task-003",
+    code: "TASK-2024-003",
+    name: "紧急bug修复",
+    type: "临时",
+    assignee: "王五",
+    creator: "admin01",
+    deadline: "2024-03-25",
+    createdAt: "2024-03-22",
+    status: "已完成",
+    description: "修复生产环境的紧急bug。",
+  },
+  {
+    id: "task-004",
+    code: "TASK-2024-004",
+    name: "技术方案调研",
+    type: "调研",
+    assignee: "赵六",
+    creator: "admin01",
+    deadline: "2024-04-20",
+    createdAt: "2024-03-15",
+    status: "进行中",
+    description: "调研新一代微服务架构方案。",
+  },
+  {
+    id: "task-005",
+    code: "TASK-2024-005",
+    name: "客户现场支持",
+    type: "支持",
+    assignee: "",
+    creator: "admin01",
+    deadline: "2024-04-05",
+    createdAt: "2024-03-28",
+    status: "待分配",
+    description: "协助华为客户现场部署和培训。",
+  },
+  {
+    id: "task-006",
+    code: "TASK-2024-006",
+    name: "性能测试执行",
+    type: "测试",
+    assignee: "李四",
+    creator: "admin01",
+    deadline: "2024-04-12",
+    createdAt: "2024-03-25",
+    status: "待分配",
+    description: "执行系统性能压力测试。",
+  },
+  {
+    id: "task-007",
+    code: "TASK-2024-007",
+    name: "需求评审准备",
+    type: "需求",
+    assignee: "张三",
+    creator: "admin01",
+    deadline: "2024-03-30",
+    createdAt: "2024-03-20",
+    status: "已完成",
+    description: "准备下周的需求评审会议材料。",
+  },
+  {
+    id: "task-008",
+    code: "TASK-2024-008",
+    name: "AI技术预研",
+    type: "调研",
+    assignee: "",
+    creator: "admin01",
+    deadline: "2024-05-01",
+    createdAt: "2024-03-28",
+    status: "待分配",
+    description: "预研大模型在智能客服中的应用。",
+  },
+]
+
+// 任务操作历史
+export const mockTaskHistories: TaskHistory[] = [
+  {
+    id: "th-001",
+    taskId: "task-001",
+    action: "创建",
+    operator: "admin01",
+    timestamp: "2024-03-20 09:00:00",
+    description: "创建任务",
+  },
+  {
+    id: "th-002",
+    taskId: "task-001",
+    action: "分配",
+    operator: "admin01",
+    timestamp: "2024-03-20 09:30:00",
+    oldValue: "",
+    newValue: "张三",
+    description: "分配给张三",
+  },
+  {
+    id: "th-003",
+    taskId: "task-001",
+    action: "状态变更",
+    operator: "张三",
+    timestamp: "2024-03-21 10:00:00",
+    oldValue: "待分配",
+    newValue: "进行中",
+    description: "开始处理任务",
+  },
+  {
+    id: "th-004",
+    taskId: "task-003",
+    action: "创建",
+    operator: "admin01",
+    timestamp: "2024-03-22 14:00:00",
+    description: "创建紧急任务",
+  },
+  {
+    id: "th-005",
+    taskId: "task-003",
+    action: "状态变更",
+    operator: "王五",
+    timestamp: "2024-03-24 18:00:00",
+    oldValue: "进行中",
+    newValue: "已完成",
+    description: "bug已修复并验证",
+  },
+]
+
+// 获取所有任务
+export function getAllTasks(): Task[] {
+  return mockTasks.sort((a, b) => new Date(b.deadline).getTime() - new Date(a.deadline).getTime())
+}
+
+// 根据ID获取任务
+export function getTaskById(id: string): Task | undefined {
+  return mockTasks.find((t) => t.id === id)
+}
+
+// 获取任务历史
+export function getTaskHistories(taskId: string): TaskHistory[] {
+  return mockTaskHistories.filter((h) => h.taskId === taskId)
 }

@@ -64,3 +64,36 @@ export interface RequirementTreeNode {
   requirement: Requirement
   children?: RequirementTreeNode[]
 }
+
+// 任务类型
+export type TaskType = "需求" | "测试" | "临时" | "调研" | "支持"
+
+// 任务状态
+export type TaskStatus = "待分配" | "进行中" | "已完成" | "已关闭"
+
+// 任务接口
+export interface Task {
+  id: string
+  code: string // 任务编号
+  name: string // 任务名称
+  type: TaskType // 任务类型
+  assignee?: string // 分配人
+  creator: string // 创建人
+  deadline: string // 截止日期
+  createdAt: string // 创建时间
+  status: TaskStatus // 状态
+  description?: string // 描述
+  relatedRequirementId?: string // 关联需求ID
+}
+
+// 任务操作记录
+export interface TaskHistory {
+  id: string
+  taskId: string
+  action: string // 操作类型
+  operator: string // 操作人
+  timestamp: string // 操作时间
+  oldValue?: string // 旧值
+  newValue?: string // 新值
+  description?: string // 描述
+}

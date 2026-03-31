@@ -116,17 +116,32 @@ const actionColors: Record<string, string> = {
 interface RequirementHistoryDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  requirement: Requirement | null
+  requirement?: Requirement | null
+  requirementCode?: string // 支持只传编号的方式
 }
 
 export function RequirementHistoryDialog({
   open,
   onOpenChange,
   requirement,
+  requirementCode,
 }: RequirementHistoryDialogProps) {
-  if (!requirement) return null
+  // 如果没有requirement对象，但有code，创建一个临时对象用于显示
+  const displayRequirement = requirement || (requirementCode ? {
+    id: "temp",
+    code: requirementCode,
+    name: "需求详情",
+    type: "IR" as const,
+    customer: "",
+    expectedDate: "",
+    createdAt: new Date().toISOString().split("T")[0],
+    status: "进行中" as const,
+    priority: "中" as const,
+  } : null)
 
-  const histories = generateMockHistory(requirement)
+  if (!displayRequirement) return null
+
+  const histories = generateMockHistory(displayRequirement)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -137,7 +152,7 @@ export function RequirementHistoryDialog({
             变更历史记录
           </DialogTitle>
           <div className="text-sm text-gray-500 pt-1">
-            {requirement.code} - {requirement.name}
+            {displayRequirement.code} {requirement?.name ? `- ${requirement.name}` : ""}
           </div>
         </DialogHeader>
 

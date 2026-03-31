@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation"
 import { Search, RotateCcw, Plus, ChevronDown, Filter, ChevronLeft, ChevronRight, Download } from "lucide-react"
 import { AdminLayout } from "@/components/admin-layout"
 import { RequirementsTable } from "@/components/requirements-table"
+import { RequirementFormDialog } from "@/components/requirement-form-dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -23,11 +24,11 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
 import { getAllRequirements } from "@/lib/mock-data"
-import type { Requirement } from "@/lib/types"
+import type { Requirement, RequirementType } from "@/lib/types"
 
 export default function RequirementsPage() {
   const searchParams = useSearchParams()
-  const typeFromUrl = searchParams.get("type")
+  const typeFromUrl = searchParams.get("type") as RequirementType | null
 
   const [requirements, setRequirements] = React.useState<Requirement[]>([])
   const [filteredRequirements, setFilteredRequirements] = React.useState<Requirement[]>([])
@@ -36,6 +37,7 @@ export default function RequirementsPage() {
   const [searchCode, setSearchCode] = React.useState("")
   const [currentPage, setCurrentPage] = React.useState(1)
   const [pageSize, setPageSize] = React.useState(10)
+  const [createDialogOpen, setCreateDialogOpen] = React.useState(false)
 
   React.useEffect(() => {
     const data = getAllRequirements()
@@ -46,6 +48,8 @@ export default function RequirementsPage() {
   React.useEffect(() => {
     if (typeFromUrl) {
       setTypeFilter(typeFromUrl)
+    } else {
+      setTypeFilter("all")
     }
   }, [typeFromUrl])
 
@@ -73,13 +77,19 @@ export default function RequirementsPage() {
   }, [typeFilter, statusFilter, searchCode, requirements])
 
   const handleReset = () => {
-    setTypeFilter("all")
+    setTypeFilter(typeFromUrl || "all")
     setStatusFilter("all")
     setSearchCode("")
   }
 
   const handleDelete = (id: string) => {
     setRequirements((prev) => prev.filter((r) => r.id !== id))
+  }
+
+  const handleCreate = (data: Partial<Requirement>) => {
+    const newRequirement = data as Requirement
+    setRequirements((prev) => [newRequirement, ...prev])
+    alert(`成功创建需求: ${newRequirement.code}`)
   }
 
   // 导出Excel功能
@@ -146,6 +156,10 @@ export default function RequirementsPage() {
     ? `${typeFromUrl}需求列表` 
     : "全部需求"
 
+  const breadcrumbTitle = typeFromUrl
+    ? `${typeFromUrl}需求`
+    : "概览"
+
   return (
     <AdminLayout>
       <div className="p-6 space-y-4">
@@ -153,7 +167,7 @@ export default function RequirementsPage() {
         <Breadcrumb>
           <BreadcrumbList>
             <BreadcrumbItem>
-              <BreadcrumbLink href="/">首页</BreadcrumbLink>
+              <BreadcrumbLink href="/workspace">工作台</BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator>/</BreadcrumbSeparator>
             <BreadcrumbItem>
@@ -161,7 +175,7 @@ export default function RequirementsPage() {
             </BreadcrumbItem>
             <BreadcrumbSeparator>/</BreadcrumbSeparator>
             <BreadcrumbItem>
-              <BreadcrumbPage>{pageTitle}</BreadcrumbPage>
+              <BreadcrumbPage>{breadcrumbTitle}</BreadcrumbPage>
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
@@ -243,7 +257,10 @@ export default function RequirementsPage() {
               <Download className="size-4" />
               导出 Excel
             </Button>
-            <Button className="gap-1 bg-blue-600 hover:bg-blue-700">
+            <Button 
+              className="gap-1 bg-blue-600 hover:bg-blue-700"
+              onClick={() => setCreateDialogOpen(true)}
+            >
               <Plus className="size-4" />
               新增
             </Button>
@@ -347,6 +364,15 @@ export default function RequirementsPage() {
           </div>
         </div>
       </div>
+
+      {/* 新增需求对话框 */}
+      <RequirementFormDialog
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
+        mode="create"
+        defaultType={typeFromUrl || undefined}
+        onSave={handleCreate}
+      />
     </AdminLayout>
   )
 }

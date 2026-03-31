@@ -33,12 +33,17 @@ interface MenuItem {
   children?: MenuItem[]
 }
 
-const menuItems: MenuItem[] = [
+// 工作台菜单
+const workspaceMenuItems: MenuItem[] = [
   {
     title: "工作台",
     icon: <LayoutGrid className="size-4" />,
     href: "/workspace",
   },
+]
+
+// 需求管理菜单
+const requirementMenuItems: MenuItem[] = [
   {
     title: "需求管理",
     icon: <FileText className="size-4" />,
@@ -85,7 +90,7 @@ function NavItem({ item, level = 0, collapsed }: NavItemProps) {
   
   // 精确匹配：只有完全匹配时才高亮
   const currentUrl = searchParams.toString() ? `${pathname}?${searchParams.toString()}` : pathname
-  const isActive = item.href === currentUrl || item.href === pathname && !item.href?.includes("?") && !searchParams.toString()
+  const isActive = item.href === currentUrl || (item.href === pathname && !item.href?.includes("?") && !searchParams.toString())
   
   const hasChildren = item.children && item.children.length > 0
 
@@ -155,9 +160,16 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   const [sidebarCollapsed, setSidebarCollapsed] = React.useState(false)
   const pathname = usePathname()
 
+  // 判断当前是在工作台还是需求管理区域
+  const isWorkspaceArea = pathname === "/workspace"
+  const isRequirementsArea = pathname.startsWith("/requirements")
+
   // 判断顶部导航的激活状态
-  const isWorkspaceActive = pathname === "/workspace"
-  const isRequirementsActive = pathname.startsWith("/requirements")
+  const isWorkspaceActive = isWorkspaceArea
+  const isRequirementsActive = isRequirementsArea
+
+  // 根据当前区域选择不同的菜单
+  const currentMenuItems = isWorkspaceArea ? workspaceMenuItems : requirementMenuItems
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -196,7 +208,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                   : "hover:bg-slate-700"
               )}
             >
-              需求
+              需求管理
             </Link>
           </nav>
         </div>
@@ -223,7 +235,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
           )}
         >
           <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
-            {menuItems.map((item) => (
+            {currentMenuItems.map((item) => (
               <NavItem key={item.title} item={item} collapsed={sidebarCollapsed} />
             ))}
           </nav>

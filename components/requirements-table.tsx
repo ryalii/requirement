@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { Eye, Pencil, Trash2, MoreHorizontal, GitBranch, ArrowRightCircle, Download } from "lucide-react"
+import { Eye, Pencil, Trash2, MoreHorizontal, GitBranch, ArrowRightCircle, History, Copy } from "lucide-react"
 import {
   Table,
   TableBody,
@@ -33,14 +33,16 @@ import {
 } from "@/components/ui/alert-dialog"
 import { DecomposeDialog } from "@/components/decompose-dialog"
 import { ConvertToIRDialog } from "@/components/convert-to-ir-dialog"
+import { RequirementHistoryDialog } from "@/components/requirement-history-dialog"
+import { RequirementFormDialog } from "@/components/requirement-form-dialog"
 import type { Requirement, RequirementType } from "@/lib/types"
 import { getRequirementById } from "@/lib/mock-data"
 
 interface RequirementsTableProps {
   requirements: Requirement[]
-  onDelete?: (id: string)=> void
+  onDelete?: (id: string) => void
   filterType?: string // 当前筛选的类型，如果有则隐藏类型列
-  onExport?: () => void
+  onUpdate?: (requirement: Requirement) => void
 }
 
 const typeColors: Record<RequirementType, string> = {
@@ -61,10 +63,12 @@ export function RequirementsTable({
   requirements,
   onDelete,
   filterType,
-  onExport,
+  onUpdate,
 }: RequirementsTableProps) {
   const [decomposeOpen, setDecomposeOpen] = React.useState(false)
   const [convertOpen, setConvertOpen] = React.useState(false)
+  const [historyOpen, setHistoryOpen] = React.useState(false)
+  const [editOpen, setEditOpen] = React.useState(false)
   const [selectedRequirement, setSelectedRequirement] = React.useState<Requirement | null>(null)
   const [targetType, setTargetType] = React.useState<"SR" | "AR">("SR")
 
@@ -85,6 +89,16 @@ export function RequirementsTable({
     setConvertOpen(true)
   }
 
+  const handleViewHistory = (req: Requirement) => {
+    setSelectedRequirement(req)
+    setHistoryOpen(true)
+  }
+
+  const handleEdit = (req: Requirement) => {
+    setSelectedRequirement(req)
+    setEditOpen(true)
+  }
+
   const handleDecomposeSave = (items: { id: string; name: string; description: string; priority: string }[]) => {
     console.log("保存拆解结果:", items)
     alert(`成功拆解为 ${items.length} 个 ${targetType} 需求`)
@@ -93,6 +107,14 @@ export function RequirementsTable({
   const handleConvertSave = (data: { name: string; description: string; priority: string; expectedDate: string }) => {
     console.log("转换为IR:", data)
     alert(`成功将 ${selectedRequirement?.code} 转换为 IR 需求`)
+  }
+
+  const handleEditSave = (data: Partial<Requirement>) => {
+    console.log("保存编辑:", data)
+    if (onUpdate && data.id) {
+      onUpdate(data as Requirement)
+    }
+    alert("需求已更新")
   }
 
   // 获取上级需求信息
@@ -209,7 +231,12 @@ export function RequirementsTable({
                             详情
                           </Button>
                         </Link>
-                        <Button variant="ghost" size="sm" className="h-8 text-gray-600 hover:text-gray-700 hover:bg-gray-100 whitespace-nowrap">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-8 text-gray-600 hover:text-gray-700 hover:bg-gray-100 whitespace-nowrap"
+                          onClick={() => handleEdit(req)}
+                        >
                           <Pencil className="size-4 mr-1" />
                           编辑
                         </Button>
@@ -260,8 +287,14 @@ export function RequirementsTable({
                                 <DropdownMenuSeparator />
                               </>
                             )}
-                            <DropdownMenuItem>复制链接</DropdownMenuItem>
-                            <DropdownMenuItem>查看历史</DropdownMenuItem>
+                            <DropdownMenuItem>
+                              <Copy className="size-4 mr-2" />
+                              复制链接
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleViewHistory(req)}>
+                              <History className="size-4 mr-2" />
+                              查看历史
+                            </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
@@ -277,7 +310,7 @@ export function RequirementsTable({
                                 <AlertDialogHeader>
                                   <AlertDialogTitle>确认删除</AlertDialogTitle>
                                   <AlertDialogDescription>
-                                    确定要删除需求 "{req.code}" 吗？此操作无法撤销。
+                                    确定要删除需求 &quot;{req.code}&quot; 吗？此操作无法撤销。
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
@@ -318,6 +351,22 @@ export function RequirementsTable({
         onOpenChange={setConvertOpen}
         lmtRequirement={selectedRequirement}
         onSave={handleConvertSave}
+      />
+
+      {/* 历史记录对话框 */}
+      <RequirementHistoryDialog
+        open={historyOpen}
+        onOpenChange={setHistoryOpen}
+        requirement={selectedRequirement}
+      />
+
+      {/* 编辑对话框 */}
+      <RequirementFormDialog
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        mode="edit"
+        requirement={selectedRequirement}
+        onSave={handleEditSave}
       />
     </>
   )

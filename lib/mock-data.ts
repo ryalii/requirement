@@ -1,4 +1,4 @@
-import type { Requirement, TestCase, Task, TaskHistory, Project, Version, Iteration, ARRequirementDetail } from "./types"
+import type { Requirement, TestCase, Task, TaskHistory, Project, Version, Iteration, ARRequirementDetail, ProjectMember, OperationLog } from "./types"
 
 // 测试用例数据
 export const mockTestCases: TestCase[] = [
@@ -821,4 +821,223 @@ export function getARDetailsByIterationId(iterationId: string): ARRequirementDet
 
 export function getARDetailById(id: string): ARRequirementDetail | undefined {
   return mockARDetails.find((ar) => ar.id === id)
+}
+
+// 项目成员数据
+export const mockProjectMembers: Record<string, ProjectMember[]> = {
+  "proj-001": [
+    { id: "mem-001", name: "张伟", role: "负责人", email: "zhangwei@company.com" },
+    { id: "mem-002", name: "李明", role: "项目经理", email: "liming@company.com" },
+    { id: "mem-003", name: "小王", role: "前端开发", email: "xiaowang@company.com" },
+    { id: "mem-004", name: "小李", role: "后端开发", email: "xiaoli@company.com" },
+    { id: "mem-005", name: "小张", role: "测试工程师", email: "xiaozhang@company.com" },
+    { id: "mem-006", name: "刘芳", role: "产品经理", email: "liufang@company.com" },
+  ],
+  "proj-002": [
+    { id: "mem-011", name: "王芳", role: "负责人", email: "wangfang@company.com" },
+    { id: "mem-012", name: "赵强", role: "项目经理", email: "zhaoqiang@company.com" },
+    { id: "mem-013", name: "小周", role: "后端开发", email: "xiaozhou@company.com" },
+    { id: "mem-014", name: "小吴", role: "测试工程师", email: "xiaowu@company.com" },
+  ],
+  "proj-003": [
+    { id: "mem-021", name: "陈刚", role: "负责人", email: "chengang@company.com" },
+    { id: "mem-022", name: "刘洋", role: "项目经理", email: "liuyang@company.com" },
+    { id: "mem-023", name: "小郑", role: "前端开发", email: "xiaozheng@company.com" },
+    { id: "mem-024", name: "小王", role: "后端开发", email: "xiaowang2@company.com" },
+    { id: "mem-025", name: "小冯", role: "测试工程师", email: "xiaofeng@company.com" },
+  ],
+  "proj-004": [
+    { id: "mem-031", name: "孙丽", role: "负责人", email: "sunli@company.com" },
+    { id: "mem-032", name: "周杰", role: "项目经理", email: "zhoujie@company.com" },
+  ],
+}
+
+// 操作日志数据
+export const mockOperationLogs: OperationLog[] = [
+  {
+    id: "log-001",
+    targetType: "project",
+    targetId: "proj-001",
+    action: "创建",
+    operator: "admin",
+    timestamp: "2024-01-01 09:00:00",
+    description: "创建项目",
+  },
+  {
+    id: "log-002",
+    targetType: "project",
+    targetId: "proj-001",
+    action: "状态变更",
+    operator: "李明",
+    timestamp: "2024-01-15 10:30:00",
+    oldValue: "未开始",
+    newValue: "进行中",
+    description: "项目正式启动",
+  },
+  {
+    id: "log-003",
+    targetType: "project",
+    targetId: "proj-001",
+    action: "添加成员",
+    operator: "李明",
+    timestamp: "2024-01-16 14:00:00",
+    newValue: "小王、小李、小张",
+    description: "添加开发团队成员",
+  },
+  {
+    id: "log-004",
+    targetType: "version",
+    targetId: "ver-001",
+    action: "创建",
+    operator: "李明",
+    timestamp: "2024-01-01 09:30:00",
+    description: "创建版本 V1.0.0",
+  },
+  {
+    id: "log-005",
+    targetType: "version",
+    targetId: "ver-001",
+    action: "状态变更",
+    operator: "张伟",
+    timestamp: "2024-03-31 18:00:00",
+    oldValue: "进行中",
+    newValue: "已发布",
+    description: "版本发布上线",
+  },
+  {
+    id: "log-006",
+    targetType: "version",
+    targetId: "ver-002",
+    action: "创建",
+    operator: "李明",
+    timestamp: "2024-04-01 09:00:00",
+    description: "创建版本 V1.1.0",
+  },
+  {
+    id: "log-007",
+    targetType: "iteration",
+    targetId: "iter-001",
+    action: "创建",
+    operator: "李明",
+    timestamp: "2024-01-01 10:00:00",
+    description: "创建迭代 Sprint 1",
+  },
+  {
+    id: "log-008",
+    targetType: "iteration",
+    targetId: "iter-001",
+    action: "添加需求",
+    operator: "刘芳",
+    timestamp: "2024-01-02 11:00:00",
+    newValue: "AR-2024-001",
+    description: "关联需求到迭代",
+  },
+  {
+    id: "log-009",
+    targetType: "iteration",
+    targetId: "iter-001",
+    action: "状态变更",
+    operator: "李明",
+    timestamp: "2024-01-31 18:00:00",
+    oldValue: "进行中",
+    newValue: "已完成",
+    description: "迭代完成评审",
+  },
+  {
+    id: "log-010",
+    targetType: "iteration",
+    targetId: "iter-004",
+    action: "创建",
+    operator: "李明",
+    timestamp: "2024-04-01 09:30:00",
+    description: "创建迭代 Sprint 4",
+  },
+  {
+    id: "log-011",
+    targetType: "project",
+    targetId: "proj-002",
+    action: "创建",
+    operator: "admin",
+    timestamp: "2024-02-01 09:00:00",
+    description: "创建项目",
+  },
+  {
+    id: "log-012",
+    targetType: "project",
+    targetId: "proj-003",
+    action: "创建",
+    operator: "admin",
+    timestamp: "2024-03-01 09:00:00",
+    description: "创建项目",
+  },
+]
+
+// 获取项目成员
+export function getProjectMembers(projectId: string): ProjectMember[] {
+  return mockProjectMembers[projectId] || []
+}
+
+// 获取操作日志
+export function getOperationLogs(targetType: "project" | "version" | "iteration", targetId: string): OperationLog[] {
+  return mockOperationLogs.filter((log) => log.targetType === targetType && log.targetId === targetId)
+}
+
+// 获取项目的需求数量
+export function getProjectRequirementCount(projectId: string): { total: number; completed: number; inProgress: number; blocked: number } {
+  const iterations = getIterationsByProjectId(projectId)
+  let total = 0
+  let completed = 0
+  let inProgress = 0
+  let blocked = 0
+  
+  iterations.forEach((iter) => {
+    const ars = getARDetailsByIterationId(iter.id)
+    ars.forEach((ar) => {
+      total++
+      if (ar.status === "已完成") completed++
+      else if (ar.status === "进行中") inProgress++
+      else if (ar.status === "已关闭") blocked++
+    })
+  })
+  
+  return { total, completed, inProgress, blocked }
+}
+
+// 获取版本的需求数量
+export function getVersionRequirementCount(versionId: string): { total: number; completed: number; inProgress: number; blocked: number } {
+  const iterations = getIterationsByVersionId(versionId)
+  let total = 0
+  let completed = 0
+  let inProgress = 0
+  let blocked = 0
+  
+  iterations.forEach((iter) => {
+    const ars = getARDetailsByIterationId(iter.id)
+    ars.forEach((ar) => {
+      total++
+      if (ar.status === "已完成") completed++
+      else if (ar.status === "进行中") inProgress++
+      else if (ar.status === "已关闭") blocked++
+    })
+  })
+  
+  return { total, completed, inProgress, blocked }
+}
+
+// 获取迭代的需求数量
+export function getIterationRequirementCount(iterationId: string): { total: number; completed: number; inProgress: number; blocked: number } {
+  const ars = getARDetailsByIterationId(iterationId)
+  let total = 0
+  let completed = 0
+  let inProgress = 0
+  let blocked = 0
+  
+  ars.forEach((ar) => {
+    total++
+    if (ar.status === "已完成") completed++
+    else if (ar.status === "进行中") inProgress++
+    else if (ar.status === "已关闭") blocked++
+  })
+  
+  return { total, completed, inProgress, blocked }
 }

@@ -149,3 +149,28 @@ export interface ARRequirementDetail {
   status: RequirementStatus
   iterationId?: string // 所属迭代ID
 }
+
+// 项目成员角色
+export type MemberRole = "负责人" | "项目经理" | "前端开发" | "后端开发" | "测试工程师" | "产品经理" | "架构师" | "UI设计师"
+
+// 项目成员
+export interface ProjectMember {
+  id: string
+  name: string
+  role: MemberRole
+  email?: string
+  phone?: string
+}
+
+// 操作日志
+export interface OperationLog {
+  id: string
+  targetType: "project" | "version" | "iteration" // 关联对象类型
+  targetId: string // 关联对象ID
+  action: string // 操作类型
+  operator: string // 操作人
+  timestamp: string // 操作时间
+  oldValue?: string // 旧值
+  newValue?: string // 新值
+  description: string // 描述
+}

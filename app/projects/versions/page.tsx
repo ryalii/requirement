@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { Plus, Search, RotateCcw, Pencil, Trash2, Download } from "lucide-react"
+import { Plus, Search, RotateCcw, Pencil, Trash2, Download, Users, FileText } from "lucide-react"
 import { AdminLayout } from "@/components/admin-layout"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -50,13 +50,22 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
-import { getAllVersions, getIterationsByVersionId, getAllProjects, getProjectById } from "@/lib/mock-data"
-import type { Version } from "@/lib/types"
+import { getAllVersions, getIterationsByVersionId, getAllProjects, getProjectById, getProjectMembers, getVersionRequirementCount } from "@/lib/mock-data"
+import type { Version, ProjectMember } from "@/lib/types"
 
 const statusConfig: Record<string, { label: string; color: string }> = {
   "进行中": { label: "进行中", color: "bg-blue-100 text-blue-700" },
   "已发布": { label: "已发布", color: "bg-green-100 text-green-700" },
   "规划中": { label: "规划中", color: "bg-gray-100 text-gray-700" },
+}
+
+const roleColors: Record<string, string> = {
+  "负责人": "bg-red-100 text-red-700",
+  "项目经理": "bg-blue-100 text-blue-700",
+  "前端开发": "bg-green-100 text-green-700",
+  "后端开发": "bg-purple-100 text-purple-700",
+  "测试工程师": "bg-orange-100 text-orange-700",
+  "产品经理": "bg-cyan-100 text-cyan-700",
 }
 
 export default function VersionsPage() {
@@ -66,7 +75,10 @@ export default function VersionsPage() {
   const [projectFilter, setProjectFilter] = React.useState("all")
   const [formOpen, setFormOpen] = React.useState(false)
   const [deleteOpen, setDeleteOpen] = React.useState(false)
+  const [membersOpen, setMembersOpen] = React.useState(false)
   const [selectedVersion, setSelectedVersion] = React.useState<Version | null>(null)
+  const [selectedMembers, setSelectedMembers] = React.useState<ProjectMember[]>([])
+  const [selectedProjectName, setSelectedProjectName] = React.useState("")
   const [isEdit, setIsEdit] = React.useState(false)
   const projects = getAllProjects()
 
@@ -141,6 +153,14 @@ export default function VersionsPage() {
     setDeleteOpen(true)
   }
 
+  const handleMembersClick = (version: Version) => {
+    const project = getProjectById(version.projectId)
+    setSelectedVersion(version)
+    setSelectedProjectName(project?.name || "")
+    setSelectedMembers(getProjectMembers(version.projectId))
+    setMembersOpen(true)
+  }
+
   const handleSave = () => {
     console.log("保存版本:", formData)
     setFormOpen(false)
@@ -152,17 +172,21 @@ export default function VersionsPage() {
   }
 
   const handleExport = () => {
-    const headers = ["产品名", "关联项目", "版本号", "开始时间", "结束时间", "迭代数", "状态"]
+    const headers = ["版本号", "产品名", "关联项目", "开始时间", "结束时间", "迭代数", "人员数", "需求数", "状态"]
     const rows = filteredVersions.map((v) => {
       const project = getProjectById(v.projectId)
       const iterations = getIterationsByVersionId(v.id)
+      const members = getProjectMembers(v.projectId)
+      const reqCount = getVersionRequirementCount(v.id)
       return [
-        v.productName,
-        project?.name || "-",
         v.versionNumber,
+        v.productName,
+        project?.code || "-",
         v.startDate,
         v.endDate,
         iterations.length.toString(),
+        members.length.toString(),
+        reqCount.total.toString(),
         v.status,
       ]
     })
@@ -263,12 +287,14 @@ export default function VersionsPage() {
           <Table>
             <TableHeader>
               <TableRow className="bg-gray-50">
-                <TableHead className="w-[150px]">产品名</TableHead>
-                <TableHead className="w-[150px]">关联项目</TableHead>
                 <TableHead className="w-[100px]">版本号</TableHead>
+                <TableHead className="w-[150px]">产品名</TableHead>
+                <TableHead className="w-[120px]">关联项目</TableHead>
                 <TableHead className="w-[110px]">开始时间</TableHead>
                 <TableHead className="w-[110px]">结束时间</TableHead>
-                <TableHead className="w-[80px]">迭代数</TableHead>
+                <TableHead className="w-[70px]">迭代数</TableHead>
+                <TableHead className="w-[70px]">人员数</TableHead>
+                <TableHead className="w-[70px]">需求数</TableHead>
                 <TableHead className="w-[80px]">状态</TableHead>
                 <TableHead className="w-[120px]">操作</TableHead>
               </TableRow>
@@ -277,9 +303,19 @@ export default function VersionsPage() {
               {paginatedVersions.map((version) => {
                 const project = getProjectById(version.projectId)
                 const iterations = getIterationsByVersionId(version.id)
+                const members = getProjectMembers(version.projectId)
+                const reqCount = getVersionRequirementCount(version.id)
                 const status = statusConfig[version.status] || statusConfig["规划中"]
                 return (
                   <TableRow key={version.id} className="hover:bg-gray-50">
+                    <TableCell>
+                      <Link
+                        href={`/projects/versions/${version.id}`}
+                        className="text-blue-600 hover:underline font-medium"
+                      >
+                        {version.versionNumber}
+                      </Link>
+                    </TableCell>
                     <TableCell className="font-medium">{version.productName}</TableCell>
                     <TableCell>
                       {project ? (
@@ -293,17 +329,29 @@ export default function VersionsPage() {
                         "-"
                       )}
                     </TableCell>
-                    <TableCell>
-                      <Link
-                        href={`/projects/versions/${version.id}`}
-                        className="text-blue-600 hover:underline font-medium"
-                      >
-                        {version.versionNumber}
-                      </Link>
-                    </TableCell>
                     <TableCell>{version.startDate}</TableCell>
                     <TableCell>{version.endDate}</TableCell>
                     <TableCell>{iterations.length}</TableCell>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 text-blue-600 hover:text-blue-700 gap-1"
+                        onClick={() => handleMembersClick(version)}
+                      >
+                        <Users className="size-3.5" />
+                        {members.length}
+                      </Button>
+                    </TableCell>
+                    <TableCell>
+                      <Link
+                        href={`/requirements?type=AR&version=${version.id}`}
+                        className="text-blue-600 hover:underline flex items-center gap-1"
+                      >
+                        <FileText className="size-3.5" />
+                        {reqCount.total}
+                      </Link>
+                    </TableCell>
                     <TableCell>
                       <Badge className={status.color}>{status.label}</Badge>
                     </TableCell>
@@ -397,6 +445,52 @@ export default function VersionsPage() {
         </div>
       </div>
 
+      {/* 人员弹窗 */}
+      <Dialog open={membersOpen} onOpenChange={setMembersOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>项目成员 - {selectedProjectName}</DialogTitle>
+            <DialogDescription>
+              共 {selectedMembers.length} 名成员
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 max-h-96 overflow-y-auto">
+            {selectedMembers.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">暂无成员</div>
+            ) : (
+              <div className="space-y-3">
+                {selectedMembers.map((member) => (
+                  <div
+                    key={member.id}
+                    className="flex items-center justify-between p-3 rounded-lg border hover:bg-gray-50"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="size-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-medium">
+                        {member.name.slice(0, 1)}
+                      </div>
+                      <div>
+                        <div className="font-medium">{member.name}</div>
+                        {member.email && (
+                          <div className="text-sm text-gray-500">{member.email}</div>
+                        )}
+                      </div>
+                    </div>
+                    <Badge className={roleColors[member.role] || "bg-gray-100 text-gray-700"}>
+                      {member.role}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setMembersOpen(false)}>
+              关闭
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* 新增/编辑对话框 */}
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
         <DialogContent className="max-w-xl">
@@ -407,6 +501,14 @@ export default function VersionsPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="grid grid-cols-2 gap-4 py-4">
+            <div className="space-y-2">
+              <Label>版本号 <span className="text-red-500">*</span></Label>
+              <Input
+                value={formData.versionNumber}
+                onChange={(e) => setFormData({ ...formData, versionNumber: e.target.value })}
+                placeholder="如：V1.0.0"
+              />
+            </div>
             <div className="space-y-2">
               <Label>产品名 <span className="text-red-500">*</span></Label>
               <Input
@@ -432,14 +534,6 @@ export default function VersionsPage() {
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>版本号 <span className="text-red-500">*</span></Label>
-              <Input
-                value={formData.versionNumber}
-                onChange={(e) => setFormData({ ...formData, versionNumber: e.target.value })}
-                placeholder="如：V1.0.0"
-              />
             </div>
             <div className="space-y-2">
               <Label>状态</Label>

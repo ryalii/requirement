@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { Plus, Search, RotateCcw, Pencil, Trash2, Download } from "lucide-react"
+import { Plus, Search, RotateCcw, Pencil, Trash2, Download, Users, FileText } from "lucide-react"
 import { AdminLayout } from "@/components/admin-layout"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -50,8 +50,8 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
-import { getAllProjects, getVersionsByProjectId, getIterationsByProjectId } from "@/lib/mock-data"
-import type { Project } from "@/lib/types"
+import { getAllProjects, getVersionsByProjectId, getIterationsByProjectId, getProjectMembers, getProjectRequirementCount } from "@/lib/mock-data"
+import type { Project, ProjectMember } from "@/lib/types"
 
 const statusConfig: Record<string, { label: string; color: string }> = {
   "进行中": { label: "进行中", color: "bg-blue-100 text-blue-700" },
@@ -60,13 +60,26 @@ const statusConfig: Record<string, { label: string; color: string }> = {
   "未开始": { label: "未开始", color: "bg-gray-100 text-gray-700" },
 }
 
+const roleColors: Record<string, string> = {
+  "负责人": "bg-red-100 text-red-700",
+  "项目经理": "bg-blue-100 text-blue-700",
+  "前端开发": "bg-green-100 text-green-700",
+  "后端开发": "bg-purple-100 text-purple-700",
+  "测试工程师": "bg-orange-100 text-orange-700",
+  "产品经理": "bg-cyan-100 text-cyan-700",
+  "架构师": "bg-indigo-100 text-indigo-700",
+  "UI设计师": "bg-pink-100 text-pink-700",
+}
+
 export default function ProjectsPage() {
   const [projects, setProjects] = React.useState<Project[]>([])
   const [searchText, setSearchText] = React.useState("")
   const [statusFilter, setStatusFilter] = React.useState("all")
   const [formOpen, setFormOpen] = React.useState(false)
   const [deleteOpen, setDeleteOpen] = React.useState(false)
+  const [membersOpen, setMembersOpen] = React.useState(false)
   const [selectedProject, setSelectedProject] = React.useState<Project | null>(null)
+  const [selectedMembers, setSelectedMembers] = React.useState<ProjectMember[]>([])
   const [isEdit, setIsEdit] = React.useState(false)
   
   // 分页
@@ -149,9 +162,15 @@ export default function ProjectsPage() {
     setDeleteOpen(true)
   }
 
+  // 打开人员弹窗
+  const handleMembersClick = (project: Project) => {
+    setSelectedProject(project)
+    setSelectedMembers(getProjectMembers(project.id))
+    setMembersOpen(true)
+  }
+
   // 保存
   const handleSave = () => {
-    // 这里是模拟保存，实际项目中需要调用API
     console.log("保存项目:", formData)
     setFormOpen(false)
   }
@@ -164,17 +183,23 @@ export default function ProjectsPage() {
 
   // 导出
   const handleExport = () => {
-    const headers = ["项目名称", "项目代号", "财务编码", "负责人", "项目经理", "开始时间", "结束时间", "状态"]
-    const rows = filteredProjects.map((p) => [
-      p.name,
-      p.code,
-      p.financeCode,
-      p.owner,
-      p.manager,
-      p.startDate,
-      p.endDate,
-      p.status,
-    ])
+    const headers = ["项目代号", "项目名称", "财务编码", "负责人", "项目经理", "开始时间", "结束时间", "人员数", "需求数", "状态"]
+    const rows = filteredProjects.map((p) => {
+      const members = getProjectMembers(p.id)
+      const reqCount = getProjectRequirementCount(p.id)
+      return [
+        p.code,
+        p.name,
+        p.financeCode,
+        p.owner,
+        p.manager,
+        p.startDate,
+        p.endDate,
+        members.length.toString(),
+        reqCount.total.toString(),
+        p.status,
+      ]
+    })
     const csvContent =
       "\uFEFF" + headers.join(",") + "\n" + rows.map((row) => row.join(",")).join("\n")
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8" })
@@ -259,8 +284,8 @@ export default function ProjectsPage() {
           <Table>
             <TableHeader>
               <TableRow className="bg-gray-50">
-                <TableHead className="w-[200px]">项目名称</TableHead>
                 <TableHead className="w-[100px]">项目代号</TableHead>
+                <TableHead className="w-[200px]">项目名称</TableHead>
                 <TableHead className="w-[100px]">财务编码</TableHead>
                 <TableHead className="w-[80px]">负责人</TableHead>
                 <TableHead className="w-[80px]">项目经理</TableHead>
@@ -268,6 +293,8 @@ export default function ProjectsPage() {
                 <TableHead className="w-[100px]">结束时间</TableHead>
                 <TableHead className="w-[60px]">版本数</TableHead>
                 <TableHead className="w-[60px]">迭代数</TableHead>
+                <TableHead className="w-[70px]">人员数</TableHead>
+                <TableHead className="w-[70px]">需求数</TableHead>
                 <TableHead className="w-[80px]">状态</TableHead>
                 <TableHead className="w-[120px]">操作</TableHead>
               </TableRow>
@@ -276,11 +303,11 @@ export default function ProjectsPage() {
               {paginatedProjects.map((project) => {
                 const versions = getVersionsByProjectId(project.id)
                 const iterations = getIterationsByProjectId(project.id)
-                const currentIter = iterations.find((i) => i.status === "进行中")
+                const members = getProjectMembers(project.id)
+                const reqCount = getProjectRequirementCount(project.id)
                 const status = statusConfig[project.status] || statusConfig["未开始"]
                 return (
                   <TableRow key={project.id} className="hover:bg-gray-50">
-                    <TableCell className="font-medium">{project.name}</TableCell>
                     <TableCell>
                       <Link
                         href={`/projects/${project.id}`}
@@ -289,6 +316,7 @@ export default function ProjectsPage() {
                         {project.code}
                       </Link>
                     </TableCell>
+                    <TableCell className="font-medium">{project.name}</TableCell>
                     <TableCell>{project.financeCode}</TableCell>
                     <TableCell>{project.owner}</TableCell>
                     <TableCell>{project.manager}</TableCell>
@@ -296,6 +324,26 @@ export default function ProjectsPage() {
                     <TableCell>{project.endDate}</TableCell>
                     <TableCell>{versions.length}</TableCell>
                     <TableCell>{iterations.length}</TableCell>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 text-blue-600 hover:text-blue-700 gap-1"
+                        onClick={() => handleMembersClick(project)}
+                      >
+                        <Users className="size-3.5" />
+                        {members.length}
+                      </Button>
+                    </TableCell>
+                    <TableCell>
+                      <Link
+                        href={`/requirements?type=AR&project=${project.id}`}
+                        className="text-blue-600 hover:underline flex items-center gap-1"
+                      >
+                        <FileText className="size-3.5" />
+                        {reqCount.total}
+                      </Link>
+                    </TableCell>
                     <TableCell>
                       <Badge className={status.color}>{status.label}</Badge>
                     </TableCell>
@@ -391,6 +439,52 @@ export default function ProjectsPage() {
         </div>
       </div>
 
+      {/* 人员弹窗 */}
+      <Dialog open={membersOpen} onOpenChange={setMembersOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>项目成员 - {selectedProject?.name}</DialogTitle>
+            <DialogDescription>
+              共 {selectedMembers.length} 名成员
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            {selectedMembers.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">暂无成员</div>
+            ) : (
+              <div className="space-y-3">
+                {selectedMembers.map((member) => (
+                  <div
+                    key={member.id}
+                    className="flex items-center justify-between p-3 rounded-lg border hover:bg-gray-50"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="size-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-medium">
+                        {member.name.slice(0, 1)}
+                      </div>
+                      <div>
+                        <div className="font-medium">{member.name}</div>
+                        {member.email && (
+                          <div className="text-sm text-gray-500">{member.email}</div>
+                        )}
+                      </div>
+                    </div>
+                    <Badge className={roleColors[member.role] || "bg-gray-100 text-gray-700"}>
+                      {member.role}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setMembersOpen(false)}>
+              关闭
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* 新增/编辑对话框 */}
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
         <DialogContent className="max-w-2xl">
@@ -402,19 +496,19 @@ export default function ProjectsPage() {
           </DialogHeader>
           <div className="grid grid-cols-2 gap-4 py-4">
             <div className="space-y-2">
-              <Label>项目名称 <span className="text-red-500">*</span></Label>
-              <Input
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="请输入项目名称"
-              />
-            </div>
-            <div className="space-y-2">
               <Label>项目代号 <span className="text-red-500">*</span></Label>
               <Input
                 value={formData.code}
                 onChange={(e) => setFormData({ ...formData, code: e.target.value })}
                 placeholder="如：Terra"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>项目名称 <span className="text-red-500">*</span></Label>
+              <Input
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="请输入项目名称"
               />
             </div>
             <div className="space-y-2">

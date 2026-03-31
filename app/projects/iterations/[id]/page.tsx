@@ -3,7 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { useParams } from "next/navigation"
-import { ArrowLeft, Repeat, Folder, GitBranch, FileCode, ExternalLink, ChevronRight, ChevronDown } from "lucide-react"
+import { ArrowLeft, Repeat, GitBranch, FileCode, ExternalLink, ChevronRight, ChevronDown, Briefcase, History, Users, Clock, CheckCircle2, AlertCircle } from "lucide-react"
 import { AdminLayout } from "@/components/admin-layout"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -17,12 +17,23 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import {
   getIterationById,
   getProjectById,
   getVersionById,
   getARDetailsByIterationId,
+  getProjectMembers,
+  getIterationRequirementCount,
+  getOperationLogs,
 } from "@/lib/mock-data"
-import type { Iteration, Project, Version, ARRequirementDetail } from "@/lib/types"
+import type { Iteration, Project, Version, ARRequirementDetail, ProjectMember, OperationLog } from "@/lib/types"
 
 const iterStatusConfig: Record<string, { label: string; color: string }> = {
   "进行中": { label: "进行中", color: "bg-blue-100 text-blue-700" },
@@ -35,6 +46,15 @@ const arStatusConfig: Record<string, { label: string; color: string }> = {
   "进行中": { label: "进行中", color: "bg-blue-100 text-blue-700" },
   "已完成": { label: "已完成", color: "bg-green-100 text-green-700" },
   "已关闭": { label: "已关闭", color: "bg-red-100 text-red-700" },
+}
+
+const roleColors: Record<string, string> = {
+  "负责人": "bg-red-100 text-red-700",
+  "项目经理": "bg-blue-100 text-blue-700",
+  "前端开发": "bg-green-100 text-green-700",
+  "后端开发": "bg-purple-100 text-purple-700",
+  "测试工程师": "bg-orange-100 text-orange-700",
+  "产品经理": "bg-cyan-100 text-cyan-700",
 }
 
 // 树节点组件
@@ -108,6 +128,28 @@ function ARRow({ ar }: { ar: ARRequirementDetail }) {
   )
 }
 
+// 数字看板卡片
+function StatCard({ title, value, icon, color, subText }: { 
+  title: string
+  value: number
+  icon: React.ReactNode
+  color: string
+  subText?: string 
+}) {
+  return (
+    <div className={`rounded-xl p-4 ${color}`}>
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="text-sm font-medium opacity-80">{title}</div>
+          <div className="text-3xl font-bold mt-1">{value}</div>
+          {subText && <div className="text-xs opacity-70 mt-1">{subText}</div>}
+        </div>
+        <div className="opacity-60">{icon}</div>
+      </div>
+    </div>
+  )
+}
+
 export default function IterationDetailPage() {
   const params = useParams()
   const iterationId = params.id as string
@@ -115,6 +157,11 @@ export default function IterationDetailPage() {
   const [project, setProject] = React.useState<Project | null>(null)
   const [version, setVersion] = React.useState<Version | null>(null)
   const [ars, setArs] = React.useState<ARRequirementDetail[]>([])
+  const [members, setMembers] = React.useState<ProjectMember[]>([])
+  const [logs, setLogs] = React.useState<OperationLog[]>([])
+  const [reqStats, setReqStats] = React.useState({ total: 0, completed: 0, inProgress: 0, blocked: 0 })
+  const [membersOpen, setMembersOpen] = React.useState(false)
+  const [logsOpen, setLogsOpen] = React.useState(false)
 
   React.useEffect(() => {
     const iter = getIterationById(iterationId)
@@ -125,6 +172,9 @@ export default function IterationDetailPage() {
       const ver = getVersionById(iter.versionId)
       setVersion(ver || null)
       setArs(getARDetailsByIterationId(iterationId))
+      setMembers(getProjectMembers(iter.projectId))
+      setLogs(getOperationLogs("iteration", iterationId))
+      setReqStats(getIterationRequirementCount(iterationId))
     }
   }, [iterationId])
 
@@ -161,13 +211,23 @@ export default function IterationDetailPage() {
         </Breadcrumb>
 
         {/* 返回按钮 */}
-        <div className="mb-4">
+        <div className="mb-4 flex items-center justify-between">
           <Link href="/projects/iterations">
             <Button variant="ghost" size="sm" className="gap-1">
               <ArrowLeft className="size-4" />
               返回迭代列表
             </Button>
           </Link>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => setMembersOpen(true)}>
+              <Users className="size-4 mr-1" />
+              团队成员 ({members.length})
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setLogsOpen(true)}>
+              <History className="size-4 mr-1" />
+              操作日志
+            </Button>
+          </div>
         </div>
 
         {/* 迭代信息卡片 */}
@@ -228,6 +288,35 @@ export default function IterationDetailPage() {
           </CardContent>
         </Card>
 
+        {/* 数字看板 */}
+        <div className="grid grid-cols-4 gap-4 mb-6">
+          <StatCard
+            title="总需求"
+            value={reqStats.total}
+            icon={<FileCode className="size-8" />}
+            color="bg-gradient-to-br from-blue-500 to-blue-600 text-white"
+          />
+          <StatCard
+            title="已完成"
+            value={reqStats.completed}
+            icon={<CheckCircle2 className="size-8" />}
+            color="bg-gradient-to-br from-green-500 to-green-600 text-white"
+            subText={reqStats.total > 0 ? `${Math.round((reqStats.completed / reqStats.total) * 100)}%` : "0%"}
+          />
+          <StatCard
+            title="进行中"
+            value={reqStats.inProgress}
+            icon={<Clock className="size-8" />}
+            color="bg-gradient-to-br from-amber-500 to-orange-500 text-white"
+          />
+          <StatCard
+            title="已阻塞"
+            value={reqStats.blocked}
+            icon={<AlertCircle className="size-8" />}
+            color="bg-gradient-to-br from-red-500 to-red-600 text-white"
+          />
+        </div>
+
         {/* 关联数据树形结构 */}
         <Card>
           <CardHeader>
@@ -247,7 +336,7 @@ export default function IterationDetailPage() {
                       {project.name} ({project.code})
                     </Link>
                   }
-                  icon={<Folder className="size-4 text-blue-600" />}
+                  icon={<Briefcase className="size-4 text-blue-600" />}
                   badge={<span className="text-xs text-gray-500">项目</span>}
                   level={0}
                 />
@@ -291,6 +380,107 @@ export default function IterationDetailPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* 团队成员弹窗 */}
+      <Dialog open={membersOpen} onOpenChange={setMembersOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>团队成员 - {project?.name}</DialogTitle>
+            <DialogDescription>
+              共 {members.length} 名成员
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 max-h-96 overflow-y-auto">
+            {members.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">暂无成员</div>
+            ) : (
+              <div className="space-y-3">
+                {members.map((member) => (
+                  <div
+                    key={member.id}
+                    className="flex items-center justify-between p-3 rounded-lg border hover:bg-gray-50"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="size-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-medium">
+                        {member.name.slice(0, 1)}
+                      </div>
+                      <div>
+                        <div className="font-medium">{member.name}</div>
+                        {member.email && (
+                          <div className="text-sm text-gray-500">{member.email}</div>
+                        )}
+                      </div>
+                    </div>
+                    <Badge className={roleColors[member.role] || "bg-gray-100 text-gray-700"}>
+                      {member.role}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setMembersOpen(false)}>
+              关闭
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 操作日志弹窗 */}
+      <Dialog open={logsOpen} onOpenChange={setLogsOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>操作日志 - {iteration.name}</DialogTitle>
+            <DialogDescription>
+              迭代变更历史记录
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 max-h-96 overflow-y-auto">
+            {logs.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">暂无操作记录</div>
+            ) : (
+              <div className="space-y-4">
+                {logs.map((log) => (
+                  <div key={log.id} className="flex gap-4 pb-4 border-b last:border-b-0">
+                    <div className="size-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+                      <History className="size-4 text-blue-600" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <div className="font-medium">{log.action}</div>
+                        <div className="text-sm text-gray-500">{log.timestamp}</div>
+                      </div>
+                      <div className="text-sm text-gray-600 mt-1">{log.description}</div>
+                      {(log.oldValue || log.newValue) && (
+                        <div className="text-sm mt-2 flex items-center gap-2">
+                          {log.oldValue && (
+                            <span className="px-2 py-0.5 bg-red-50 text-red-600 rounded">
+                              {log.oldValue}
+                            </span>
+                          )}
+                          {log.oldValue && log.newValue && <span className="text-gray-400">→</span>}
+                          {log.newValue && (
+                            <span className="px-2 py-0.5 bg-green-50 text-green-600 rounded">
+                              {log.newValue}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                      <div className="text-xs text-gray-400 mt-1">操作人: {log.operator}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setLogsOpen(false)}>
+              关闭
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AdminLayout>
   )
 }

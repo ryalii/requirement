@@ -1,7 +1,8 @@
 "use client"
 
 import * as React from "react"
-import { Search, RotateCcw, Plus, ChevronDown, Filter } from "lucide-react"
+import { useSearchParams } from "next/navigation"
+import { Search, RotateCcw, Plus, ChevronDown, Filter, ChevronLeft, ChevronRight } from "lucide-react"
 import { AdminLayout } from "@/components/admin-layout"
 import { RequirementsTable } from "@/components/requirements-table"
 import { Button } from "@/components/ui/button"
@@ -21,32 +22,32 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-  PaginationEllipsis,
-} from "@/components/ui/pagination"
 import { getAllRequirements } from "@/lib/mock-data"
-import type { Requirement, RequirementType } from "@/lib/types"
+import type { Requirement } from "@/lib/types"
 
 export default function RequirementsPage() {
+  const searchParams = useSearchParams()
+  const typeFromUrl = searchParams.get("type")
+
   const [requirements, setRequirements] = React.useState<Requirement[]>([])
   const [filteredRequirements, setFilteredRequirements] = React.useState<Requirement[]>([])
-  const [typeFilter, setTypeFilter] = React.useState<string>("all")
+  const [typeFilter, setTypeFilter] = React.useState<string>(typeFromUrl || "all")
   const [statusFilter, setStatusFilter] = React.useState<string>("all")
   const [searchCode, setSearchCode] = React.useState("")
   const [currentPage, setCurrentPage] = React.useState(1)
-  const pageSize = 10
+  const [pageSize, setPageSize] = React.useState(10)
 
   React.useEffect(() => {
     const data = getAllRequirements()
     setRequirements(data)
     setFilteredRequirements(data)
   }, [])
+
+  React.useEffect(() => {
+    if (typeFromUrl) {
+      setTypeFilter(typeFromUrl)
+    }
+  }, [typeFromUrl])
 
   React.useEffect(() => {
     let filtered = requirements
@@ -81,12 +82,35 @@ export default function RequirementsPage() {
     setRequirements((prev) => prev.filter((r) => r.id !== id))
   }
 
-  // 分页
+  // 分页计算
   const totalPages = Math.ceil(filteredRequirements.length / pageSize)
   const paginatedRequirements = filteredRequirements.slice(
     (currentPage - 1) * pageSize,
     currentPage * pageSize
   )
+
+  // 生成页码数组
+  const getPageNumbers = () => {
+    const pages: (number | string)[] = []
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i)
+      }
+    } else {
+      if (currentPage <= 4) {
+        pages.push(1, 2, 3, 4, 5, "...", totalPages)
+      } else if (currentPage >= totalPages - 3) {
+        pages.push(1, "...", totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages)
+      } else {
+        pages.push(1, "...", currentPage - 1, currentPage, currentPage + 1, "...", totalPages)
+      }
+    }
+    return pages
+  }
+
+  const pageTitle = typeFromUrl 
+    ? `${typeFromUrl}需求列表` 
+    : "全部需求"
 
   return (
     <AdminLayout>
@@ -99,11 +123,11 @@ export default function RequirementsPage() {
             </BreadcrumbItem>
             <BreadcrumbSeparator>/</BreadcrumbSeparator>
             <BreadcrumbItem>
-              <BreadcrumbLink href="/requirements">需求</BreadcrumbLink>
+              <BreadcrumbLink href="/requirements">需求管理</BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator>/</BreadcrumbSeparator>
             <BreadcrumbItem>
-              <BreadcrumbPage>需求管理</BreadcrumbPage>
+              <BreadcrumbPage>{pageTitle}</BreadcrumbPage>
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
@@ -113,11 +137,12 @@ export default function RequirementsPage() {
           <div className="flex items-center gap-2">
             <span className="text-sm text-gray-600 whitespace-nowrap">需求类型</span>
             <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger className="w-40">
+              <SelectTrigger className="w-44">
                 <SelectValue placeholder="请选择需求类型" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">全部类型</SelectItem>
+                <SelectItem value="LMT">LMT - 市场需求</SelectItem>
                 <SelectItem value="IR">IR - 原始需求</SelectItem>
                 <SelectItem value="SR">SR - 系统需求</SelectItem>
                 <SelectItem value="AR">AR - 软件需求</SelectItem>
@@ -147,7 +172,7 @@ export default function RequirementsPage() {
               placeholder="请输入需求编号或名称"
               value={searchCode}
               onChange={(e) => setSearchCode(e.target.value)}
-              className="w-48"
+              className="w-52"
             />
           </div>
 
@@ -186,82 +211,82 @@ export default function RequirementsPage() {
           onDelete={handleDelete}
         />
 
-        {/* 分页 */}
-        <div className="flex items-center justify-between bg-white p-4 rounded-lg border">
+        {/* 分页 - 中文版本，更宽松的布局 */}
+        <div className="flex items-center justify-between bg-white px-6 py-4 rounded-lg border">
           <div className="text-sm text-gray-600">
-            共 {filteredRequirements.length} 条
+            共 <span className="font-medium text-gray-900">{filteredRequirements.length}</span> 条记录
           </div>
-          <div className="flex items-center gap-4">
-            <Select defaultValue="10">
-              <SelectTrigger className="w-24">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="10">10条/页</SelectItem>
-                <SelectItem value="20">20条/页</SelectItem>
-                <SelectItem value="50">50条/页</SelectItem>
-              </SelectContent>
-            </Select>
-            <Pagination>
-              <PaginationContent>
-                <PaginationItem>
-                  <PaginationPrevious
-                    href="#"
-                    onClick={(e) => {
-                      e.preventDefault()
-                      if (currentPage > 1) setCurrentPage(currentPage - 1)
-                    }}
-                  />
-                </PaginationItem>
-                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => (
-                  <PaginationItem key={i + 1}>
-                    <PaginationLink
-                      href="#"
-                      isActive={currentPage === i + 1}
-                      onClick={(e) => {
-                        e.preventDefault()
-                        setCurrentPage(i + 1)
-                      }}
+          
+          <div className="flex items-center gap-6">
+            {/* 每页条数选择 */}
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-600 whitespace-nowrap">每页显示</span>
+              <Select value={String(pageSize)} onValueChange={(v) => { setPageSize(Number(v)); setCurrentPage(1); }}>
+                <SelectTrigger className="w-24">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="10">10 条</SelectItem>
+                  <SelectItem value="20">20 条</SelectItem>
+                  <SelectItem value="50">50 条</SelectItem>
+                  <SelectItem value="100">100 条</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* 分页按钮 */}
+            <div className="flex items-center gap-1">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                disabled={currentPage === 1}
+                className="h-9 px-3 gap-1"
+              >
+                <ChevronLeft className="size-4" />
+                上一页
+              </Button>
+              
+              {getPageNumbers().map((page, index) => (
+                <React.Fragment key={index}>
+                  {page === "..." ? (
+                    <span className="px-2 text-gray-400">...</span>
+                  ) : (
+                    <Button
+                      variant={currentPage === page ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setCurrentPage(page as number)}
+                      className={`h-9 w-9 p-0 ${
+                        currentPage === page 
+                          ? "bg-blue-600 hover:bg-blue-700 text-white" 
+                          : ""
+                      }`}
                     >
-                      {i + 1}
-                    </PaginationLink>
-                  </PaginationItem>
-                ))}
-                {totalPages > 5 && (
-                  <>
-                    <PaginationItem>
-                      <PaginationEllipsis />
-                    </PaginationItem>
-                    <PaginationItem>
-                      <PaginationLink
-                        href="#"
-                        onClick={(e) => {
-                          e.preventDefault()
-                          setCurrentPage(totalPages)
-                        }}
-                      >
-                        {totalPages}
-                      </PaginationLink>
-                    </PaginationItem>
-                  </>
-                )}
-                <PaginationItem>
-                  <PaginationNext
-                    href="#"
-                    onClick={(e) => {
-                      e.preventDefault()
-                      if (currentPage < totalPages) setCurrentPage(currentPage + 1)
-                    }}
-                  />
-                </PaginationItem>
-              </PaginationContent>
-            </Pagination>
-            <div className="flex items-center gap-2 text-sm">
-              <span>前往</span>
+                      {page}
+                    </Button>
+                  )}
+                </React.Fragment>
+              ))}
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                disabled={currentPage === totalPages || totalPages === 0}
+                className="h-9 px-3 gap-1"
+              >
+                下一页
+                <ChevronRight className="size-4" />
+              </Button>
+            </div>
+
+            {/* 跳转输入 */}
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-600 whitespace-nowrap">跳转至</span>
               <Input
                 type="number"
                 min={1}
-                max={totalPages}
+                max={totalPages || 1}
                 value={currentPage}
                 onChange={(e) => {
                   const page = parseInt(e.target.value)
@@ -269,9 +294,9 @@ export default function RequirementsPage() {
                     setCurrentPage(page)
                   }
                 }}
-                className="w-16"
+                className="w-16 h-9 text-center"
               />
-              <span>页</span>
+              <span className="text-sm text-gray-600 whitespace-nowrap">页</span>
             </div>
           </div>
         </div>

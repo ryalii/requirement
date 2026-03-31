@@ -45,6 +45,46 @@ export const mockTestCases: TestCase[] = [
 
 // 模拟需求数据
 export const mockRequirements: Requirement[] = [
+  // LMT需求（市场需求）
+  {
+    id: "lmt-001",
+    code: "LMT-2024-001",
+    name: "智能客服系统需求",
+    type: "LMT",
+    customer: "京东科技",
+    project: "智能客服项目",
+    expectedDate: "2024-09-30",
+    createdAt: "2024-03-01",
+    status: "待分析",
+    priority: "高",
+    description: "客户需要一套智能客服系统，支持多渠道接入和智能问答。",
+  },
+  {
+    id: "lmt-002",
+    code: "LMT-2024-002",
+    name: "数据中台建设需求",
+    type: "LMT",
+    customer: "美团点评",
+    project: "数据中台项目",
+    expectedDate: "2024-10-15",
+    createdAt: "2024-03-05",
+    status: "待分析",
+    priority: "中",
+    description: "建设企业级数据中台，实现数据统一管理和共享。",
+  },
+  {
+    id: "lmt-003",
+    code: "LMT-2024-003",
+    name: "供应链管理优化",
+    type: "LMT",
+    customer: "小米科技",
+    project: "",
+    expectedDate: "2024-11-01",
+    createdAt: "2024-03-10",
+    status: "待分析",
+    priority: "低",
+    description: "优化现有供应链管理系统，提升效率和可视化程度。",
+  },
   // IR需求
   {
     id: "ir-001",
@@ -52,6 +92,7 @@ export const mockRequirements: Requirement[] = [
     name: "用户管理系统升级",
     type: "IR",
     customer: "华为技术",
+    project: "用户管理项目",
     expectedDate: "2024-06-30",
     createdAt: "2024-01-15",
     status: "进行中",
@@ -64,6 +105,7 @@ export const mockRequirements: Requirement[] = [
     name: "报表系统定制开发",
     type: "IR",
     customer: "阿里巴巴",
+    project: "报表系统项目",
     expectedDate: "2024-07-15",
     createdAt: "2024-02-01",
     status: "待分析",
@@ -76,6 +118,7 @@ export const mockRequirements: Requirement[] = [
     name: "移动端适配需求",
     type: "IR",
     customer: "腾讯科技",
+    project: "移动端项目",
     expectedDate: "2024-08-01",
     createdAt: "2024-02-20",
     status: "待分析",
@@ -89,6 +132,7 @@ export const mockRequirements: Requirement[] = [
     name: "用户认证模块重构",
     type: "SR",
     customer: "华为技术",
+    project: "用户管理项目",
     expectedDate: "2024-04-30",
     createdAt: "2024-01-20",
     status: "进行中",
@@ -102,6 +146,7 @@ export const mockRequirements: Requirement[] = [
     name: "权限管理系统设计",
     type: "SR",
     customer: "华为技术",
+    project: "用户管理项目",
     expectedDate: "2024-05-15",
     createdAt: "2024-01-25",
     status: "进行中",
@@ -115,6 +160,7 @@ export const mockRequirements: Requirement[] = [
     name: "报表数据采集模块",
     type: "SR",
     customer: "阿里巴巴",
+    project: "报表系统项目",
     expectedDate: "2024-05-30",
     createdAt: "2024-02-10",
     status: "待分析",
@@ -128,6 +174,7 @@ export const mockRequirements: Requirement[] = [
     name: "移动端UI框架选型",
     type: "SR",
     customer: "腾讯科技",
+    project: "移动端项目",
     expectedDate: "2024-04-15",
     createdAt: "2024-02-25",
     status: "已完成",
@@ -142,6 +189,7 @@ export const mockRequirements: Requirement[] = [
     name: "登录接口开发",
     type: "AR",
     customer: "华为技术",
+    project: "用户管理项目",
     expectedDate: "2024-03-15",
     createdAt: "2024-02-01",
     status: "已完成",
@@ -155,6 +203,7 @@ export const mockRequirements: Requirement[] = [
     name: "OAuth2.0集成",
     type: "AR",
     customer: "华为技术",
+    project: "用户管理项目",
     expectedDate: "2024-04-01",
     createdAt: "2024-02-05",
     status: "进行中",
@@ -168,6 +217,7 @@ export const mockRequirements: Requirement[] = [
     name: "角色管理API",
     type: "AR",
     customer: "华为技术",
+    project: "用户管理项目",
     expectedDate: "2024-04-15",
     createdAt: "2024-02-10",
     status: "进行中",
@@ -181,6 +231,7 @@ export const mockRequirements: Requirement[] = [
     name: "权限校验中间件",
     type: "AR",
     customer: "华为技术",
+    project: "用户管理项目",
     expectedDate: "2024-04-20",
     createdAt: "2024-02-15",
     status: "待分析",
@@ -194,6 +245,7 @@ export const mockRequirements: Requirement[] = [
     name: "数据源连接池管理",
     type: "AR",
     customer: "阿里巴巴",
+    project: "报表系统项目",
     expectedDate: "2024-04-30",
     createdAt: "2024-02-20",
     status: "待分析",
@@ -207,6 +259,7 @@ export const mockRequirements: Requirement[] = [
     name: "移动端首页开发",
     type: "AR",
     customer: "腾讯科技",
+    project: "移动端项目",
     expectedDate: "2024-05-01",
     createdAt: "2024-03-01",
     status: "待分析",
@@ -286,4 +339,10 @@ export function buildIRTree(irId: string) {
     requirement: ir,
     children: srNodes,
   }
+}
+
+// 按类型获取需求
+export function getRequirementsByType(type: string): Requirement[] {
+  if (type === "all") return mockRequirements
+  return mockRequirements.filter((r) => r.type === type)
 }

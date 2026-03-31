@@ -8,10 +8,14 @@ import {
   FileText,
   ChevronDown,
   ChevronRight,
-  User,
   RefreshCw,
   PanelLeftClose,
   PanelLeft,
+  LayoutDashboard,
+  FileStack,
+  FileCog,
+  FileCode,
+  FileCheck,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -41,7 +45,28 @@ const menuItems: MenuItem[] = [
     children: [
       {
         title: "概览",
+        icon: <LayoutDashboard className="size-4" />,
         href: "/requirements",
+      },
+      {
+        title: "LMT需求",
+        icon: <FileStack className="size-4" />,
+        href: "/requirements?type=LMT",
+      },
+      {
+        title: "IR需求",
+        icon: <FileCog className="size-4" />,
+        href: "/requirements?type=IR",
+      },
+      {
+        title: "SR需求",
+        icon: <FileCode className="size-4" />,
+        href: "/requirements?type=SR",
+      },
+      {
+        title: "AR需求",
+        icon: <FileCheck className="size-4" />,
+        href: "/requirements?type=AR",
       },
     ],
   },
@@ -56,7 +81,7 @@ interface NavItemProps {
 function NavItem({ item, level = 0, collapsed }: NavItemProps) {
   const pathname = usePathname()
   const [open, setOpen] = React.useState(true)
-  const isActive = item.href === pathname
+  const isActive = item.href === pathname || (item.href && pathname.startsWith(item.href.split("?")[0]) && item.href.includes(pathname))
   const hasChildren = item.children && item.children.length > 0
 
   if (hasChildren) {
@@ -133,22 +158,10 @@ export function AdminLayout({ children }: AdminLayoutProps) {
           </Link>
           <nav className="flex items-center gap-1 ml-4">
             <Link
-              href="/"
-              className="px-4 py-2 text-sm hover:text-blue-400 transition-colors"
-            >
-              系统
-            </Link>
-            <Link
               href="/requirements"
               className="px-4 py-2 text-sm bg-blue-600 rounded-md hover:bg-blue-500 transition-colors"
             >
               需求
-            </Link>
-            <Link
-              href="#"
-              className="px-4 py-2 text-sm hover:text-blue-400 transition-colors"
-            >
-              软件
             </Link>
           </nav>
         </div>
@@ -171,7 +184,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         <aside
           className={cn(
             "bg-white border-r flex flex-col shrink-0 transition-all duration-300",
-            sidebarCollapsed ? "w-16" : "w-48"
+            sidebarCollapsed ? "w-16" : "w-52"
           )}
         >
           <nav className="flex-1 p-2 space-y-1 overflow-y-auto">

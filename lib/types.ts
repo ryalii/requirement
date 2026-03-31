@@ -1,5 +1,5 @@
 // 需求类型
-export type RequirementType = "IR" | "SR" | "AR"
+export type RequirementType = "LMT" | "IR" | "SR" | "AR"
 
 // 需求状态
 export type RequirementStatus = "待分析" | "进行中" | "已完成" | "已关闭"
@@ -14,12 +14,19 @@ export interface Requirement {
   name: string // 需求名称
   type: RequirementType // 需求类型
   customer: string // 来源客户
+  project?: string // 项目（非必填）
   expectedDate: string // 期望解决时间
   createdAt: string // 创建时间
   status: RequirementStatus // 状态
   priority: RequirementPriority // 优先级
   description?: string // 描述
   parentId?: string // 父需求ID
+}
+
+// LMT需求（市场需求）
+export interface LMTRequirement extends Requirement {
+  type: "LMT"
+  irId?: string // 转换后的IR需求ID
 }
 
 // IR需求（原始需求）

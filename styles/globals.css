@@ -75,8 +75,9 @@
 }
 
 @theme inline {
-  --font-sans: 'Geist', 'Geist Fallback';
-  --font-mono: 'Geist Mono', 'Geist Mono Fallback';
+  --font-sans: 'Times New Roman', 'Times', '宋体', 'SimSun', 'STSong', serif;
+  --font-serif: 'Times New Roman', 'Times', '宋体', 'SimSun', 'STSong', serif;
+  --font-mono: 'Times New Roman', 'Times', '宋体', 'SimSun', 'STSong', serif;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);

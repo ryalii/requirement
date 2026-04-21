@@ -2,12 +2,8 @@
 
 import * as React from "react"
 import Link from "next/link"
-<<<<<<< HEAD
-import { usePathname } from "next/navigation"
-=======
 import { Suspense } from "react"
 import { usePathname, useSearchParams } from "next/navigation"
->>>>>>> 1549499 (feat: 添加登录页面并修复构建问题)
 import {
   FileText,
   ChevronDown,

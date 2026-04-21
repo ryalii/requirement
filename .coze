@@ -8,4 +8,4 @@ run = ["pnpm", "dev"]
 
 [deploy]
 build = ["bash", "deploy.sh"]
-run = ["pnpm", "start"]
+run = ["bash", "deploy.sh"]

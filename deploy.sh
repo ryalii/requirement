@@ -1,2 +1,2 @@
 #!/bin/bash
-pnpm install && pnpm build
+pnpm install && pnpm build && pnpm start

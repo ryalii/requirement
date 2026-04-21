@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { Suspense } from "react"
 import { useSearchParams } from "next/navigation"
 import { Search, RotateCcw, Plus, ChevronDown, Filter, ChevronLeft, ChevronRight, Download } from "lucide-react"
 import { AdminLayout } from "@/components/admin-layout"
@@ -25,8 +26,9 @@ import {
 } from "@/components/ui/breadcrumb"
 import { getAllRequirements } from "@/lib/mock-data"
 import type { Requirement, RequirementType } from "@/lib/types"
+import { Skeleton } from "@/components/ui/skeleton"
 
-export default function RequirementsPage() {
+function RequirementsContent() {
   const searchParams = useSearchParams()
   const typeFromUrl = searchParams.get("type") as RequirementType | null
 
@@ -374,5 +376,25 @@ export default function RequirementsPage() {
         onSave={handleCreate}
       />
     </AdminLayout>
+  )
+}
+
+function RequirementsLoading() {
+  return (
+    <AdminLayout>
+      <div className="p-6 space-y-4">
+        <Skeleton className="h-10 w-48" />
+        <Skeleton className="h-32 w-full" />
+        <Skeleton className="h-96 w-full" />
+      </div>
+    </AdminLayout>
+  )
+}
+
+export default function RequirementsPage() {
+  return (
+    <Suspense fallback={<RequirementsLoading />}>
+      <RequirementsContent />
+    </Suspense>
   )
 }

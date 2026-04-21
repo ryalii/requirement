@@ -1,0 +1,11 @@
+[project]
+requires = ["nodejs-24"]
+entrypoint = "app/page.tsx"
+
+[dev]
+build = ["pnpm", "install"]
+run = ["pnpm", "build"]
+
+[deploy]
+build = ["pnpm", "build"]
+run = ["pnpm", "start"]

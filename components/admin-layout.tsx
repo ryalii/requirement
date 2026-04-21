@@ -2,7 +2,12 @@
 
 import * as React from "react"
 import Link from "next/link"
+<<<<<<< HEAD
 import { usePathname } from "next/navigation"
+=======
+import { Suspense } from "react"
+import { usePathname, useSearchParams } from "next/navigation"
+>>>>>>> 1549499 (feat: 添加登录页面并修复构建问题)
 import {
   FileText,
   ChevronDown,
@@ -168,7 +173,7 @@ interface NavItemProps {
   collapsed?: boolean
 }
 
-function NavItem({ item, level = 0, collapsed }: NavItemProps) {
+function NavItemContent({ item, level = 0, collapsed }: NavItemProps) {
   const pathname = usePathname()
   const [search, setSearch] = React.useState("")
   
@@ -226,7 +231,7 @@ function NavItem({ item, level = 0, collapsed }: NavItemProps) {
         <CollapsibleContent>
           <div className="mt-1 space-y-1">
             {item.children?.map((child) => (
-              <NavItem
+              <NavItemContent
                 key={child.title}
                 item={child}
                 level={level + 1}
@@ -523,5 +528,14 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         onOpenChange={setChangePasswordOpen} 
       />
     </div>
+  )
+}
+
+// 包装 NavItem 以支持 Suspense
+export function NavItem(props: NavItemProps) {
+  return (
+    <Suspense fallback={<div className="h-9 animate-pulse bg-gray-100 rounded-md" />}>
+      <NavItemContent {...props} />
+    </Suspense>
   )
 }

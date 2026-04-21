@@ -1,6 +1,11 @@
 "use client"
 
 import * as React from "react"
+<<<<<<< HEAD
+=======
+import { Suspense } from "react"
+import { useSearchParams } from "next/navigation"
+>>>>>>> 1549499 (feat: 添加登录页面并修复构建问题)
 import { Search, RotateCcw, Plus, ChevronDown, Filter, ChevronLeft, ChevronRight, Download } from "lucide-react"
 import { AdminLayout } from "@/components/admin-layout"
 import { RequirementsTable } from "@/components/requirements-table"
@@ -24,9 +29,16 @@ import {
 } from "@/components/ui/breadcrumb"
 import { getAllRequirements } from "@/lib/mock-data"
 import type { Requirement, RequirementType } from "@/lib/types"
+import { Skeleton } from "@/components/ui/skeleton"
 
+<<<<<<< HEAD
 export default function RequirementsPage() {
   const [typeFromUrl, setTypeFromUrl] = React.useState<RequirementType | null>(null)
+=======
+function RequirementsContent() {
+  const searchParams = useSearchParams()
+  const typeFromUrl = searchParams.get("type") as RequirementType | null
+>>>>>>> 1549499 (feat: 添加登录页面并修复构建问题)
 
   const [requirements, setRequirements] = React.useState<Requirement[]>([])
   const [filteredRequirements, setFilteredRequirements] = React.useState<Requirement[]>([])
@@ -380,5 +392,25 @@ export default function RequirementsPage() {
         onSave={handleCreate}
       />
     </AdminLayout>
+  )
+}
+
+function RequirementsLoading() {
+  return (
+    <AdminLayout>
+      <div className="p-6 space-y-4">
+        <Skeleton className="h-10 w-48" />
+        <Skeleton className="h-32 w-full" />
+        <Skeleton className="h-96 w-full" />
+      </div>
+    </AdminLayout>
+  )
+}
+
+export default function RequirementsPage() {
+  return (
+    <Suspense fallback={<RequirementsLoading />}>
+      <RequirementsContent />
+    </Suspense>
   )
 }

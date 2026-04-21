@@ -1,0 +1,1 @@
+self.__SSG_MANIFEST=new Set(["\u002Fprojects\u002F[id]","\u002Fprojects\u002Fiterations\u002F[id]","\u002Fprojects\u002Fversions\u002F[id]","\u002Frequirements\u002F[id]","\u002Frequirements\u002Fbugs\u002F[id]","\u002Frequirements\u002Ftesting\u002Ftest-cases\u002F[id]"]);self.__SSG_MANIFEST_CB&&self.__SSG_MANIFEST_CB()

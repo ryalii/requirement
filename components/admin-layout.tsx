@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { usePathname, useSearchParams } from "next/navigation"
+import { usePathname } from "next/navigation"
 import {
   FileText,
   ChevronDown,
@@ -170,13 +170,23 @@ interface NavItemProps {
 
 function NavItem({ item, level = 0, collapsed }: NavItemProps) {
   const pathname = usePathname()
-  const searchParams = useSearchParams()
+  const [search, setSearch] = React.useState("")
+  
+  React.useEffect(() => {
+    // 客户端读取 query string，避免静态导出时 useSearchParams 的 Suspense 报错
+    setSearch(window.location.search)
+    
+    const handler = () => setSearch(window.location.search)
+    window.addEventListener("popstate", handler)
+    return () => window.removeEventListener("popstate", handler)
+  }, [pathname])
+  
   const [open, setOpen] = React.useState(true)
   
   // 匹配逻辑：
   // 1. 如果href包含query参数，需要完全匹配
   // 2. 如果href不包含query参数，则用前缀匹配（支持详情页高亮父级）
-  const currentUrl = searchParams.toString() ? `${pathname}?${searchParams.toString()}` : pathname
+  const currentUrl = search ? `${pathname}${search}` : pathname
   const isActive = React.useMemo(() => {
     if (!item.href) return false
     // 如果菜单项的href有query参数，需要精确匹配

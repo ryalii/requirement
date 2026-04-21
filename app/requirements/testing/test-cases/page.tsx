@@ -2,7 +2,6 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { useSearchParams } from "next/navigation"
 import { 
   Plus, Search, RotateCcw, Pencil, Trash2, Download, 
   Filter, Users, CheckCircle2, XCircle, Clock, AlertCircle,
@@ -80,7 +79,6 @@ const priorityConfig: Record<string, { label: string; color: string }> = {
 }
 
 export default function TestCasesPage() {
-  const searchParams = useSearchParams()
   const [testCases, setTestCases] = React.useState<TestCaseDetail[]>([])
   const [projects, setProjects] = React.useState<Project[]>([])
   const [versions, setVersions] = React.useState<Version[]>([])

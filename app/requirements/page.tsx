@@ -1,7 +1,6 @@
 "use client"
 
 import * as React from "react"
-import { useSearchParams } from "next/navigation"
 import { Search, RotateCcw, Plus, ChevronDown, Filter, ChevronLeft, ChevronRight, Download } from "lucide-react"
 import { AdminLayout } from "@/components/admin-layout"
 import { RequirementsTable } from "@/components/requirements-table"
@@ -27,17 +26,24 @@ import { getAllRequirements } from "@/lib/mock-data"
 import type { Requirement, RequirementType } from "@/lib/types"
 
 export default function RequirementsPage() {
-  const searchParams = useSearchParams()
-  const typeFromUrl = searchParams.get("type") as RequirementType | null
+  const [typeFromUrl, setTypeFromUrl] = React.useState<RequirementType | null>(null)
 
   const [requirements, setRequirements] = React.useState<Requirement[]>([])
   const [filteredRequirements, setFilteredRequirements] = React.useState<Requirement[]>([])
-  const [typeFilter, setTypeFilter] = React.useState<string>(typeFromUrl || "all")
+  const [typeFilter, setTypeFilter] = React.useState<string>("all")
   const [statusFilter, setStatusFilter] = React.useState<string>("all")
   const [searchCode, setSearchCode] = React.useState("")
   const [currentPage, setCurrentPage] = React.useState(1)
   const [pageSize, setPageSize] = React.useState(10)
   const [createDialogOpen, setCreateDialogOpen] = React.useState(false)
+
+  React.useEffect(() => {
+    // 客户端读取 URL query，避免静态导出时 useSearchParams 的 Suspense 报错
+    const params = new URLSearchParams(window.location.search)
+    const type = params.get("type") as RequirementType | null
+    setTypeFromUrl(type)
+    if (type) setTypeFilter(type)
+  }, [])
 
   React.useEffect(() => {
     const data = getAllRequirements()

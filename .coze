@@ -4,8 +4,8 @@ entrypoint = "app/page.tsx"
 
 [dev]
 build = ["pnpm", "install"]
-run = ["pnpm", "build"]
+run = ["pnpm", "dev"]
 
 [deploy]
-build = ["pnpm", "build"]
+build = ["bash", "deploy.sh"]
 run = ["pnpm", "start"]

@@ -3,7 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { Suspense } from "react"
-import { usePathname, useSearchParams } from "next/navigation"
+import { usePathname, useSearchParams, useRouter } from "next/navigation"
 import {
   FileText,
   ChevronDown,
@@ -354,6 +354,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   const [sidebarCollapsed, setSidebarCollapsed] = React.useState(false)
   const [changePasswordOpen, setChangePasswordOpen] = React.useState(false)
   const pathname = usePathname()
+  const router = useRouter()
 
   // 判断当前是在哪个区域
   const isWorkspaceArea = pathname === "/workspace"
@@ -392,7 +393,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                 <path d="M9 16h6" />
               </svg>
             </div>
-            <span>研发需求管理系统</span>
+            <span>研发流程管理系统</span>
           </Link>
           <nav className="flex items-center gap-1 ml-4">
             <Link
@@ -470,7 +471,10 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                 系统设置
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="gap-2 text-red-600">
+              <DropdownMenuItem
+                className="gap-2 text-red-600 cursor-pointer"
+                onClick={() => router.push("/login")}
+              >
                 <LogOut className="size-4" />
                 退出登录
               </DropdownMenuItem>
@@ -515,7 +519,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
 
       {/* 页脚 */}
       <footer className="h-8 bg-white border-t flex items-center justify-center text-xs text-gray-500 shrink-0">
-        Copyright © 2026 研发需求管理系统 All rights reserved. v1.0
+        Copyright © 2026 研发流程管理系统 All rights reserved. v1.0
       </footer>
 
       {/* 修改密码对话框 */}

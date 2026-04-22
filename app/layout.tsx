@@ -3,8 +3,8 @@ import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'v0 App',
-  description: 'Created with v0',
+  title: '研发流程管理系统',
+  description: '研发流程管理系统',
   generator: 'v0.app',
   icons: {
     icon: [

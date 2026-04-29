@@ -1,20 +1,23 @@
 #!/bin/bash
 echo "========================================"
-echo " 需求管理系统 - 前端启动脚本 (Linux/Mac)"
+echo " 前端启动脚本 (Linux/Mac)"
 echo "========================================"
 echo ""
 
 cd "$(dirname "$0")"
 
-echo "[1/2] 安装前端依赖..."
-pnpm install
-if [ $? -ne 0 ]; then
-    echo "[ERROR] 依赖安装失败"
-    exit 1
+# 端口检查
+if lsof -ti:3000 &> /dev/null; then
+    echo "[WARN] 端口 3000 已被占用，正在释放..."
+    lsof -ti:3000 | xargs kill -9 2>/dev/null
+    sleep 2
 fi
-echo "[OK] 依赖安装完成"
 
-echo "[2/2] 启动前端开发服务器..."
+echo "[1/2] 安装依赖..."
+pnpm install &> /dev/null
+echo "[OK] 依赖就绪"
+
+echo "[2/2] 启动前端..."
 echo "地址: http://localhost:3000"
 echo ""
 pnpm dev

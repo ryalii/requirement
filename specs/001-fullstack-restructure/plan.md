@@ -16,7 +16,7 @@
 **Target Platform**: Web application — 后端部署在 localhost:8080, 前端 localhost:3000
 **Project Type**: Web application (frontend + backend)
 **Performance Goals**: 100 并发请求 95% < 1s, 10000 条需求列表查询 < 500ms, 前端 60fps 看板渲染
-**Constraints**: CORS 限制 localhost:3000, JWT 24h 过期, 统一响应格式 `{ code, message, data }`, 逻辑删除
+**Constraints**: CORS 限制 localhost:3000, JWT 24h 过期, 统一响应格式 `{ code, message, data }`, 逻辑删除, updated_at 冲突检测返回 409
 **Scale/Scope**: 10 张数据库表, 8 个 Controller, ~50 个 API 端点, 10 个前端页面, 20+ 个新 UI 组件
 
 ## Constitution Check

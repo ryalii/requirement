@@ -35,17 +35,16 @@ import { DecomposeDialog } from "@/components/decompose-dialog"
 import { ConvertToIRDialog } from "@/components/convert-to-ir-dialog"
 import { RequirementHistoryDialog } from "@/components/requirement-history-dialog"
 import { RequirementFormDialog } from "@/components/requirement-form-dialog"
-import type { Requirement, RequirementType } from "@/lib/types"
-import { getRequirementById } from "@/lib/mock-data"
+import type { RequirementVO } from "@/lib/api/requirements"
 
 interface RequirementsTableProps {
-  requirements: Requirement[]
+  requirements: RequirementVO[]
   onDelete?: (id: string) => void
-  filterType?: string // 当前筛选的类型，如果有则隐藏类型列
-  onUpdate?: (requirement: Requirement) => void
+  filterType?: string
+  onUpdate?: (requirement: RequirementVO) => void
 }
 
-const typeColors: Record<RequirementType, string> = {
+const typeColors: Record<string, string> = {
   LMT: "bg-purple-100 text-purple-700 border-purple-200",
   IR: "bg-blue-100 text-blue-700 border-blue-200",
   SR: "bg-green-100 text-green-700 border-green-200",
@@ -60,7 +59,7 @@ const statusColors: Record<string, string> = {
 }
 
 export function RequirementsTable({
-  requirements,
+  requirements = [],
   onDelete,
   filterType,
   onUpdate,
@@ -69,7 +68,7 @@ export function RequirementsTable({
   const [convertOpen, setConvertOpen] = React.useState(false)
   const [historyOpen, setHistoryOpen] = React.useState(false)
   const [editOpen, setEditOpen] = React.useState(false)
-  const [selectedRequirement, setSelectedRequirement] = React.useState<Requirement | null>(null)
+  const [selectedRequirement, setSelectedRequirement] = React.useState<RequirementVO | null>(null)
   const [targetType, setTargetType] = React.useState<"SR" | "AR">("SR")
 
   // 是否显示类型列（如果已经按类型筛选则隐藏）
@@ -78,23 +77,23 @@ export function RequirementsTable({
   // 是否显示上级需求列（SR和AR需要显示）
   const showParentColumn = filterType === "SR" || filterType === "AR"
 
-  const handleDecompose = (req: Requirement, target: "SR" | "AR") => {
+  const handleDecompose = (req: RequirementVO, target: "SR" | "AR") => {
     setSelectedRequirement(req)
     setTargetType(target)
     setDecomposeOpen(true)
   }
 
-  const handleConvertToIR = (req: Requirement) => {
+  const handleConvertToIR = (req: RequirementVO) => {
     setSelectedRequirement(req)
     setConvertOpen(true)
   }
 
-  const handleViewHistory = (req: Requirement) => {
+  const handleViewHistory = (req: RequirementVO) => {
     setSelectedRequirement(req)
     setHistoryOpen(true)
   }
 
-  const handleEdit = (req: Requirement) => {
+  const handleEdit = (req: RequirementVO) => {
     setSelectedRequirement(req)
     setEditOpen(true)
   }
@@ -109,7 +108,7 @@ export function RequirementsTable({
     alert(`成功将 ${selectedRequirement?.code} 转换为 IR 需求`)
   }
 
-  const handleEditSave = (data: Partial<Requirement>) => {
+  const handleEditSave = (data: Partial<RequirementVO>) => {
     console.log("保存编辑:", data)
     if (onUpdate && data.id) {
       onUpdate(data as Requirement)
@@ -117,10 +116,10 @@ export function RequirementsTable({
     alert("需求已更新")
   }
 
-  // 获取上级需求信息
-  const getParentRequirement = (req: Requirement) => {
+  // 获取上级需求信息（使用VO中的parentCode/parentType字段）
+  const getParentRequirement = (req: RequirementVO) => {
     if (!req.parentId) return null
-    return getRequirementById(req.parentId)
+    return { id: req.parentId, code: req.parentCode, type: req.parentType }
   }
 
   return (
@@ -317,7 +316,7 @@ export function RequirementsTable({
                                   <AlertDialogCancel>取消</AlertDialogCancel>
                                   <AlertDialogAction
                                     className="bg-red-600 hover:bg-red-700"
-                                    onClick={() => onDelete?.(req.id)}
+                                    onClick={() => onDelete?.(String(req.id))}
                                   >
                                     删除
                                   </AlertDialogAction>

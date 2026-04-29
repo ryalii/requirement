@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AlertCircle, Eye, EyeOff, Loader2 } from "lucide-react"
+import { login } from "@/lib/api/auth"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -24,24 +25,21 @@ export default function LoginPage() {
     setError("")
     setIsLoading(true)
 
-    // 简单的客户端验证
     if (!formData.email || !formData.password) {
       setError("请输入邮箱和密码")
       setIsLoading(false)
       return
     }
 
-    // 模拟登录请求
-    await new Promise(resolve => setTimeout(resolve, 1500))
-
-    // 模拟登录成功（实际项目中这里应该是真实的认证逻辑）
-    if (formData.email === "admin@example.com" && formData.password === "admin123") {
+    try {
+      await login(formData.email, formData.password)
       router.push("/workspace")
-    } else {
-      setError("邮箱或密码错误")
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "登录失败"
+      setError(message)
+    } finally {
+      setIsLoading(false)
     }
-    
-    setIsLoading(false)
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {

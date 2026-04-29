@@ -60,16 +60,8 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
-import {
-  getRequirementById,
-  buildIRTree,
-  getSRsByIRId,
-  getARsBySRId,
-  getIRBySRId,
-  getSRByARId,
-  getTestCasesByARId,
-} from "@/lib/mock-data"
-import type { Requirement, RequirementType } from "@/lib/types"
+import { getRequirement, getRequirementTree, getAncestors } from "@/lib/api/requirements"
+import type { RequirementVO } from "@/lib/api/requirements"
 
 // 默认配置，用于未知类型的回退
 const defaultTypeConfig = {
@@ -316,8 +308,50 @@ export default function RequirementDetailPage() {
   const [editDialogOpen, setEditDialogOpen] = React.useState(false)
   const [historyDialogOpen, setHistoryDialogOpen] = React.useState(false)
   const [convertTaskDialogOpen, setConvertTaskDialogOpen] = React.useState(false)
+  const [requirement, setRequirement] = React.useState<RequirementVO | null>(null)
+  const [loading, setLoading] = React.useState(true)
+  const [treeData, setTreeData] = React.useState(null)
+  const [children, setChildren] = React.useState<RequirementVO[]>([])
+  const [ancestors, setAncestors] = React.useState([])
 
-  const requirement = getRequirementById(id)
+  React.useEffect(() => {
+    async function fetchData() {
+      try {
+        const reqId = Number(id)
+        const [req, anc] = await Promise.all([
+          getRequirement(reqId),
+          getAncestors(reqId),
+        ])
+        setRequirement(req)
+        setAncestors(anc)
+
+        // Load type-specific data
+        if (req.type === 'IR' || req.type === 'SR') {
+          const [tree, childList] = await Promise.all([
+            getRequirementTree(reqId),
+            getChildren(reqId),
+          ])
+          setTreeData(tree)
+          setChildren(childList)
+        }
+      } catch {
+        setRequirement(null)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchData()
+  }, [id])
+
+  if (loading) {
+    return (
+      <AdminLayout>
+        <div className="flex items-center justify-center h-96">
+          <div className="size-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        </div>
+      </AdminLayout>
+    )
+  }
 
   if (!requirement) {
     return (
@@ -395,13 +429,8 @@ export default function RequirementDetailPage() {
       }
 
       case "IR": {
-        // IR显示完整的树形结构（IR -> SR -> AR）
-        const treeData = buildIRTree(requirement.id)
-        const childSRs = getSRsByIRId(requirement.id)
-        
         return (
           <div className="space-y-6">
-            {/* 需求分解说明 */}
             <Card className="border-blue-200 bg-blue-50/30">
               <CardContent className="pt-4">
                 <div className="flex items-start gap-3">
@@ -411,18 +440,16 @@ export default function RequirementDetailPage() {
                   <div>
                     <h4 className="font-semibold text-blue-800">原始需求分解</h4>
                     <p className="text-sm text-blue-700 mt-1">
-                      此IR需求已分解为 <strong>{childSRs.length}</strong> 个系统需求(SR)，
-                      共计 <strong>{childSRs.reduce((acc, sr) => acc + getARsBySRId(sr.id).length, 0)}</strong> 个软件需求(AR)
+                      此IR需求已分解为 <strong>{children.length}</strong> 个系统需求(SR)
                     </p>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            {/* 树形结构展示 */}
             {treeData && (
-              <RequirementTree 
-                data={treeData} 
+              <RequirementTree
+                data={treeData}
                 currentId={requirement.id}
                 title="需求分解结构 (IR → SR → AR)"
               />
@@ -430,11 +457,11 @@ export default function RequirementDetailPage() {
           </div>
         )
       }
-      
+
       case "SR": {
         // SR显示上级IR和下级AR列表
-        const parentIR = getIRBySRId(requirement.id)
-        const childARs = getARsBySRId(requirement.id)
+        const parentIR = requirement.parentId ? ancestors.length > 0 ? ancestors[0] : null : null
+        const childARs = children
 
         // 计算AR状态统计
         const arStats = {
@@ -559,9 +586,9 @@ export default function RequirementDetailPage() {
       
       case "AR": {
         // AR显示完整链路追溯和关联测试用例
-        const parentSR = getSRByARId(requirement.id)
-        const parentIR = parentSR ? getIRBySRId(parentSR.id) : undefined
-        const testCases = getTestCasesByARId(requirement.id)
+        const parentIR = ancestors.length > 1 ? ancestors[0] : null
+        const parentSR = ancestors.length > 0 ? ancestors[ancestors.length - 1] : null
+        const testCases: any[] = []
 
         return (
           <div className="space-y-6">

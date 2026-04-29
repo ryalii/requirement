@@ -15,3 +15,12 @@ node_modules
 .next/
 .DS_Store
 .vercel
+
+# Java/Maven backend
+backend/target/
+*.class
+*.jar
+*.war
+*.log
+!mvnw
+!mvnw.cmd

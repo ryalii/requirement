@@ -43,16 +43,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import {
-  getProjectById,
-  getVersionsByProjectId,
-  getIterationsByVersionId,
-  getARDetailsByIterationId,
-  getProjectMembers,
-  getProjectRequirementCount,
-  getOperationLogs,
-} from "@/lib/mock-data"
-import type { Project, Version, Iteration, ARRequirementDetail, ProjectMember, OperationLog } from "@/lib/types"
+import { getProject, getProjectMembers, getProjectLogs, getProjectTree } from "@/lib/api/projects"
+import type { ProjectDetailVO, ProjectMemberVO, OperationLogVO } from "@/lib/api/projects"
 
 const projectStatusConfig: Record<string, { label: string; color: string }> = {
   "进行中": { label: "进行中", color: "bg-blue-100 text-blue-700" },
@@ -187,16 +179,16 @@ function StatCard({ title, value, icon, color, subText }: {
 export default function ProjectDetailPage() {
   const params = useParams()
   const projectId = params.id as string
-  const [project, setProject] = React.useState<Project | null>(null)
-  const [versions, setVersions] = React.useState<Version[]>([])
-  const [members, setMembers] = React.useState<ProjectMember[]>([])
-  const [logs, setLogs] = React.useState<OperationLog[]>([])
+  const [project, setProject] = React.useState<any>(null)
+  const [versions, setVersions] = React.useState<any[]>([])
+  const [members, setMembers] = React.useState<any[]>([])
+  const [logs, setLogs] = React.useState<any[]>([])
   const [reqStats, setReqStats] = React.useState({ total: 0, completed: 0, inProgress: 0, blocked: 0 })
   const [membersOpen, setMembersOpen] = React.useState(false)
   const [logsOpen, setLogsOpen] = React.useState(false)
   const [addMemberOpen, setAddMemberOpen] = React.useState(false)
   const [deleteMemberOpen, setDeleteMemberOpen] = React.useState(false)
-  const [memberToDelete, setMemberToDelete] = React.useState<ProjectMember | null>(null)
+  const [memberToDelete, setMemberToDelete] = React.useState<any>(null)
   const [newMember, setNewMember] = React.useState({
     name: "",
     email: "",
@@ -204,14 +196,26 @@ export default function ProjectDetailPage() {
   })
 
   React.useEffect(() => {
-    const proj = getProjectById(projectId)
-    if (proj) {
-      setProject(proj)
-      setVersions(getVersionsByProjectId(projectId))
-      setMembers(getProjectMembers(projectId))
-      setLogs(getOperationLogs("project", projectId))
-      setReqStats(getProjectRequirementCount(projectId))
+    async function fetchData() {
+      try {
+        const pid = Number(projectId)
+        const [detail, treeData] = await Promise.all([
+          getProject(pid),
+          getProjectTree(pid).catch(() => null),
+        ])
+        setProject(detail.project)
+        setReqStats(detail.stats)
+        setMembers(detail.members)
+        setLogs(detail.logs)
+        if (treeData) {
+          const versions = treeData.versions || []
+          setVersions(versions)
+        }
+      } catch {
+        setProject(null)
+      }
     }
+    fetchData()
   }, [projectId])
 
   if (!project) {
@@ -347,7 +351,7 @@ export default function ProjectDetailPage() {
                 <div className="text-center py-10 text-gray-500">暂无版本数据</div>
               ) : (
                 versions.map((version) => {
-                  const iterations = getIterationsByVersionId(version.id)
+                  const iterations = version.iterations || []
                   const versionStatus = versionStatusConfig[version.status] || versionStatusConfig["规划中"]
                   return (
                     <TreeNode
@@ -372,7 +376,7 @@ export default function ProjectDetailPage() {
                       level={0}
                     >
                       {iterations.map((iteration) => {
-                        const ars = getARDetailsByIterationId(iteration.id)
+                        const ars = iteration.ars || []
                         const iterStatus = iterStatusConfig[iteration.status] || iterStatusConfig["规划中"]
                         return (
                           <TreeNode

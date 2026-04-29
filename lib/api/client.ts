@@ -1,4 +1,4 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8080/api/v1';
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE || '/api/v1';
 
 interface ApiResponse<T> {
   code: number;
@@ -28,13 +28,14 @@ class HttpClient {
     return localStorage.getItem('token');
   }
 
-  private async request<T>(
-    method: string,
-    path: string,
-    body?: unknown,
-    params?: Record<string, string | number | undefined>,
-  ): Promise<T> {
-    const url = new URL(`${this.baseUrl}${path}`);
+  private buildUrl(path: string, params?: Record<string, string | number | undefined>): URL {
+    const normalizedBase = this.baseUrl.replace(/\/$/, '');
+    const endpoint = `${normalizedBase}${path}`;
+
+    const url = endpoint.startsWith('http')
+      ? new URL(endpoint)
+      : new URL(endpoint, typeof window !== 'undefined' ? window.location.origin : 'http://localhost');
+
     if (params) {
       Object.entries(params).forEach(([key, value]) => {
         if (value !== undefined && value !== '') {
@@ -42,6 +43,17 @@ class HttpClient {
         }
       });
     }
+
+    return url;
+  }
+
+  private async request<T>(
+    method: string,
+    path: string,
+    body?: unknown,
+    params?: Record<string, string | number | undefined>,
+  ): Promise<T> {
+    const url = this.buildUrl(path, params);
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -57,6 +69,14 @@ class HttpClient {
       headers,
       body: body ? JSON.stringify(body) : undefined,
     });
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      throw new ApiError(
+        `请求失败: ${res.status} ${res.statusText}` + (errorText ? ` - ${errorText.replace(/\s+/g, ' ').slice(0, 200)}` : ''),
+        res.status,
+      );
+    }
 
     const json = await res.json() as ApiResponse<T>;
 
@@ -101,14 +121,7 @@ class HttpClient {
 
   // Backend returns flat format: {code,message,data:[...],page,pageSize,total}
   async getPage<T>(path: string, params?: Record<string, string | number | undefined>): Promise<PageData<T>> {
-    const url = new URL(`${this.baseUrl}${path}`);
-    if (params) {
-      Object.entries(params).forEach(([key, value]) => {
-        if (value !== undefined && value !== '') {
-          url.searchParams.set(key, String(value));
-        }
-      });
-    }
+    const url = this.buildUrl(path, params);
 
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     const token = this.getToken();
@@ -137,14 +150,7 @@ class HttpClient {
   }
 
   async download(path: string, filename: string, params?: Record<string, string | number | undefined>): Promise<void> {
-    const url = new URL(`${this.baseUrl}${path}`);
-    if (params) {
-      Object.entries(params).forEach(([key, value]) => {
-        if (value !== undefined && value !== '') {
-          url.searchParams.set(key, String(value));
-        }
-      });
-    }
+    const url = this.buildUrl(path, params);
 
     const headers: Record<string, string> = {};
     const token = this.getToken();

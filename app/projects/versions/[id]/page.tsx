@@ -24,15 +24,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import {
-  getVersionById,
-  getProjectById,
-  getIterationsByVersionId,
-  getARDetailsByIterationId,
-  getVersionRequirementCount,
-  getOperationLogs,
-} from "@/lib/mock-data"
-import type { Version, Project, Iteration, ARRequirementDetail, OperationLog } from "@/lib/types"
+import { getVersion, getVersionIterations, getVersionStats, getVersionLogs } from "@/lib/api/versions"
+import { getProject } from "@/lib/api/projects"
+import { getIterationArs } from "@/lib/api/iterations"
+import type { VersionVO, OperationLogVO } from "@/lib/api/versions"
+import type { ProjectVO } from "@/lib/api/projects"
+import type { IterationVO } from "@/lib/api/iterations"
+import type { RequirementVO } from "@/lib/api/requirements"
 
 const versionStatusConfig: Record<string, { label: string; color: string }> = {
   "进行中": { label: "进行中", color: "bg-blue-100 text-blue-700" },
@@ -95,7 +93,7 @@ function TreeNode({ title, icon, badge, children, defaultOpen = false, level = 0
 }
 
 // AR需求行组件
-function ARRow({ ar }: { ar: ARRequirementDetail }) {
+function ARRow({ ar }: { ar: RequirementVO }) {
   const status = arStatusConfig[ar.status] || arStatusConfig["待分析"]
   return (
     <div
@@ -148,23 +146,51 @@ function StatCard({ title, value, icon, color, subText }: {
 
 export default function VersionDetailPage() {
   const params = useParams()
-  const versionId = params.id as string
-  const [version, setVersion] = React.useState<Version | null>(null)
-  const [project, setProject] = React.useState<Project | null>(null)
-  const [iterations, setIterations] = React.useState<Iteration[]>([])
-  const [logs, setLogs] = React.useState<OperationLog[]>([])
+  const versionId = Number(params.id)
+  const [version, setVersion] = React.useState<VersionVO | null>(null)
+  const [project, setProject] = React.useState<ProjectVO | null>(null)
+  const [iterations, setIterations] = React.useState<IterationVO[]>([])
+  const [arsByIteration, setArsByIteration] = React.useState<Record<number, RequirementVO[]>>({})
+  const [logs, setLogs] = React.useState<OperationLogVO[]>([])
   const [reqStats, setReqStats] = React.useState({ total: 0, completed: 0, inProgress: 0, blocked: 0 })
   const [logsOpen, setLogsOpen] = React.useState(false)
 
   React.useEffect(() => {
-    const ver = getVersionById(versionId)
-    if (ver) {
-      setVersion(ver)
-      const proj = getProjectById(ver.projectId)
-      setProject(proj || null)
-      setIterations(getIterationsByVersionId(versionId))
-      setLogs(getOperationLogs("version", versionId))
-      setReqStats(getVersionRequirementCount(versionId))
+    async function fetchData() {
+      try {
+        const ver = await getVersion(versionId)
+        setVersion(ver)
+
+        if (ver.projectId != null) {
+          const projectResult = await getProject(ver.projectId)
+          setProject(projectResult.project || null)
+        }
+
+        const iterList = await getVersionIterations(versionId)
+        setIterations(iterList)
+
+        const logsResult = await getVersionLogs(versionId)
+        setLogs(logsResult)
+
+        const statsResult = await getVersionStats(versionId)
+        setReqStats({
+          total: Number((statsResult as Record<string, unknown>).totalRequirements ?? (statsResult as Record<string, unknown>).total ?? 0),
+          completed: Number((statsResult as Record<string, unknown>).completedRequirements ?? (statsResult as Record<string, unknown>).completed ?? 0),
+          inProgress: Number((statsResult as Record<string, unknown>).inProgressRequirements ?? (statsResult as Record<string, unknown>).inProgress ?? 0),
+          blocked: Number((statsResult as Record<string, unknown>).blockedRequirements ?? (statsResult as Record<string, unknown>).blocked ?? 0),
+        })
+
+        const arsEntries = await Promise.all(
+          iterList.map(async (iter) => [iter.id, await getIterationArs(iter.id)] as const)
+        )
+        setArsByIteration(Object.fromEntries(arsEntries))
+      } catch (error) {
+        console.error("加载版本详情失败", error)
+      }
+    }
+
+    if (!Number.isNaN(versionId)) {
+      fetchData()
     }
   }, [versionId])
 
@@ -303,7 +329,7 @@ export default function VersionDetailPage() {
                 <div className="text-center py-10 text-gray-500">暂无迭代数据</div>
               ) : (
                 iterations.map((iteration) => {
-                  const ars = getARDetailsByIterationId(iteration.id)
+                  const ars = arsByIteration[iteration.id] || []
                   const iterStatus = iterStatusConfig[iteration.status] || iterStatusConfig["规划中"]
                   return (
                     <TreeNode

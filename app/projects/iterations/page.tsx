@@ -50,16 +50,12 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
-import {
-  getAllIterations,
-  getAllProjects,
-  getAllVersions,
-  getProjectById,
-  getVersionById,
-  getVersionsByProjectId,
-  getIterationRequirementCount
-} from "@/lib/mock-data"
-import type { Iteration } from "@/lib/types"
+import { listIterations, createIteration, updateIteration, deleteIteration, getIterationStats, exportIterations } from "@/lib/api/iterations"
+import { listProjects } from "@/lib/api/projects"
+import { listVersions } from "@/lib/api/versions"
+import type { IterationVO } from "@/lib/api/iterations"
+import type { ProjectVO } from "@/lib/api/projects"
+import type { VersionVO } from "@/lib/api/versions"
 
 const statusConfig: Record<string, { label: string; color: string }> = {
   "进行中": { label: "进行中", color: "bg-blue-100 text-blue-700" },
@@ -68,20 +64,79 @@ const statusConfig: Record<string, { label: string; color: string }> = {
 }
 
 export default function IterationsPage() {
-  const [iterations, setIterations] = React.useState<Iteration[]>([])
+  const [iterations, setIterations] = React.useState<IterationVO[]>([])
+  const [projects, setProjects] = React.useState<ProjectVO[]>([])
+  const [versions, setVersions] = React.useState<VersionVO[]>([])
+  const [statsMap, setStatsMap] = React.useState<Record<number, { total: number }>>({})
+  const [totalCount, setTotalCount] = React.useState(0)
+  const [loading, setLoading] = React.useState(false)
   const [searchText, setSearchText] = React.useState("")
   const [statusFilter, setStatusFilter] = React.useState("all")
   const [projectFilter, setProjectFilter] = React.useState("all")
   const [formOpen, setFormOpen] = React.useState(false)
   const [deleteOpen, setDeleteOpen] = React.useState(false)
-  const [selectedIteration, setSelectedIteration] = React.useState<Iteration | null>(null)
+  const [selectedIteration, setSelectedIteration] = React.useState<IterationVO | null>(null)
   const [isEdit, setIsEdit] = React.useState(false)
-  const projects = getAllProjects()
-  const allVersions = getAllVersions()
 
   // 分页
   const [currentPage, setCurrentPage] = React.useState(1)
   const [pageSize, setPageSize] = React.useState(10)
+
+  React.useEffect(() => {
+    fetchProjects()
+    fetchVersions()
+  }, [])
+
+  React.useEffect(() => {
+    fetchIterations()
+  }, [searchText, statusFilter, projectFilter, currentPage, pageSize])
+
+  async function fetchProjects() {
+    try {
+      const result = await listProjects({ page: 1, pageSize: 1000 })
+      setProjects(result.list)
+    } catch (error) {
+      console.error("加载项目失败", error)
+    }
+  }
+
+  async function fetchVersions() {
+    try {
+      const result = await listVersions({ page: 1, pageSize: 1000 })
+      setVersions(result.list)
+    } catch (error) {
+      console.error("加载版本失败", error)
+    }
+  }
+
+  async function fetchIterations() {
+    setLoading(true)
+    try {
+      const params = {
+        page: currentPage,
+        pageSize,
+        keyword: searchText || undefined,
+        status: statusFilter === "all" ? undefined : statusFilter,
+        projectId: projectFilter === "all" ? undefined : Number(projectFilter),
+      }
+      const result = await listIterations(params)
+      setIterations(result.list)
+      setTotalCount(result.total)
+
+      const statsEntries = await Promise.all(
+        result.list.map(async (item) => {
+          const stat = await getIterationStats(item.id)
+          const total = Number((stat as Record<string, unknown>).totalRequirements ?? (stat as Record<string, unknown>).total ?? 0)
+          return [item.id, { total }] as const
+        })
+      )
+      setStatsMap(Object.fromEntries(statsEntries))
+    } catch (error) {
+      console.error("加载迭代失败", error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   // 表单数据
   const [formData, setFormData] = React.useState({
@@ -91,34 +146,18 @@ export default function IterationsPage() {
     versionId: "",
     startDate: "",
     endDate: "",
-    status: "规划中" as Iteration["status"],
+    status: "规划中",
     description: "",
   })
 
   // 根据选中的项目筛选版本
   const filteredVersions = formData.projectId
-    ? getVersionsByProjectId(formData.projectId)
-    : allVersions
-
-  React.useEffect(() => {
-    setIterations(getAllIterations())
-  }, [])
+    ? versions.filter((v) => v.projectId === Number(formData.projectId))
+    : versions
 
   // 筛选
-  const filteredIterations = iterations.filter((i) => {
-    const matchSearch = i.name.toLowerCase().includes(searchText.toLowerCase())
-    const matchStatus = statusFilter === "all" || i.status === statusFilter
-    const matchProject = projectFilter === "all" || i.projectId === projectFilter
-    return matchSearch && matchStatus && matchProject
-  })
-
-  // 分页
-  const totalCount = filteredIterations.length
   const totalPages = Math.ceil(totalCount / pageSize)
-  const paginatedIterations = filteredIterations.slice(
-    (currentPage - 1) * pageSize,
-    currentPage * pageSize
-  )
+  const paginatedIterations = iterations
 
   const handleAdd = () => {
     setIsEdit(false)
@@ -135,63 +174,76 @@ export default function IterationsPage() {
     setFormOpen(true)
   }
 
-  const handleEdit = (iteration: Iteration) => {
+  const handleEdit = (iteration: IterationVO) => {
     setIsEdit(true)
     setSelectedIteration(iteration)
     setFormData({
       name: iteration.name,
-      projectId: iteration.projectId,
-      productName: iteration.productName,
-      versionId: iteration.versionId,
-      startDate: iteration.startDate,
-      endDate: iteration.endDate,
+      projectId: iteration.projectId?.toString() ?? "",
+      productName: iteration.productName ?? "",
+      versionId: iteration.versionId?.toString() ?? "",
+      startDate: iteration.startDate ?? "",
+      endDate: iteration.endDate ?? "",
       status: iteration.status,
       description: iteration.description || "",
     })
     setFormOpen(true)
   }
 
-  const handleDeleteClick = (iteration: Iteration) => {
+  const handleDeleteClick = (iteration: IterationVO) => {
     setSelectedIteration(iteration)
     setDeleteOpen(true)
   }
 
-  const handleSave = () => {
-    console.log("保存迭代:", formData)
-    setFormOpen(false)
+  const handleSave = async () => {
+    try {
+      const payload = {
+        name: formData.name,
+        projectId: Number(formData.projectId),
+        productName: formData.productName,
+        versionId: Number(formData.versionId),
+        startDate: formData.startDate,
+        endDate: formData.endDate,
+        status: formData.status,
+        description: formData.description,
+      }
+      if (isEdit && selectedIteration) {
+        await updateIteration(selectedIteration.id, payload)
+      } else {
+        await createIteration(payload)
+      }
+      setFormOpen(false)
+      fetchIterations()
+    } catch (error) {
+      console.error("保存迭代失败", error)
+      alert("保存失败，请稍后重试")
+    }
   }
 
-  const handleDelete = () => {
-    console.log("删除迭代:", selectedIteration?.id)
-    setDeleteOpen(false)
+  const handleDelete = async () => {
+    try {
+      if (selectedIteration) {
+        await deleteIteration(selectedIteration.id)
+        setDeleteOpen(false)
+        fetchIterations()
+      }
+    } catch (error) {
+      console.error("删除迭代失败", error)
+      alert("删除失败，请稍后重试")
+    }
   }
 
-  const handleExport = () => {
-    const headers = ["迭代名称", "所属项目", "所属产品", "所属版本", "开始时间", "结束时间", "需求数", "状态"]
-    const rows = filteredIterations.map((i) => {
-      const project = getProjectById(i.projectId)
-      const version = getVersionById(i.versionId)
-      const reqCount = getIterationRequirementCount(i.id)
-      return [
-        i.name,
-        project?.code || "-",
-        i.productName,
-        version?.versionNumber || "-",
-        i.startDate,
-        i.endDate,
-        reqCount.total.toString(),
-        i.status,
-      ]
-    })
-    const csvContent =
-      "\uFEFF" + headers.join(",") + "\n" + rows.map((row) => row.join(",")).join("\n")
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8" })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement("a")
-    link.href = url
-    link.download = `迭代列表_${new Date().toISOString().split("T")[0]}.csv`
-    link.click()
-    URL.revokeObjectURL(url)
+  const handleExport = async () => {
+    try {
+      await exportIterations({
+        projectId: projectFilter === "all" ? undefined : Number(projectFilter),
+        status: statusFilter === "all" ? undefined : statusFilter,
+        keyword: searchText || undefined,
+      })
+    } catch (error) {
+      console.error("导出迭代失败", error)
+      alert("导出失败，请稍后重试")
+    }
   }
 
   return (
@@ -259,7 +311,7 @@ export default function IterationsPage() {
               <RotateCcw className="size-4 mr-1" />
               重置
             </Button>
-            <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
+            <Button size="sm" className="bg-blue-600 hover:bg-blue-700" onClick={fetchIterations}>
               <Search className="size-4 mr-1" />
               查询
             </Button>
@@ -293,9 +345,9 @@ export default function IterationsPage() {
             </TableHeader>
             <TableBody>
               {paginatedIterations.map((iteration) => {
-                const project = getProjectById(iteration.projectId)
-                const version = getVersionById(iteration.versionId)
-                const reqCount = getIterationRequirementCount(iteration.id)
+                const project = projects.find((p) => p.id === iteration.projectId)
+                const version = versions.find((v) => v.id === iteration.versionId)
+                const reqCount = statsMap[iteration.id] || { total: 0 }
                 const status = statusConfig[iteration.status] || statusConfig["规划中"]
                 return (
                   <TableRow key={iteration.id} className="hover:bg-gray-50">
@@ -505,7 +557,7 @@ export default function IterationsPage() {
               <Label>状态</Label>
               <Select
                 value={formData.status}
-                onValueChange={(v) => setFormData({ ...formData, status: v as Iteration["status"] })}
+                onValueChange={(v) => setFormData({ ...formData, status: v })}
               >
                 <SelectTrigger>
                   <SelectValue />

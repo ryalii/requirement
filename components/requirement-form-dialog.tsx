@@ -20,8 +20,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { listRequirements } from "@/lib/api/requirements"
 import type { Requirement, RequirementType } from "@/lib/types"
-import { getAllRequirements } from "@/lib/mock-data"
+import type { RequirementVO } from "@/lib/api/requirements"
 
 interface RequirementFormDialogProps {
   open: boolean
@@ -41,6 +42,7 @@ export function RequirementFormDialog({
   onSave,
 }: RequirementFormDialogProps) {
   const [saving, setSaving] = React.useState(false)
+  const [parentOptions, setParentOptions] = React.useState<RequirementVO[]>([])
   const [formData, setFormData] = React.useState({
     code: "",
     name: "",
@@ -54,23 +56,22 @@ export function RequirementFormDialog({
     parentId: "",
   })
 
-  // 获取可选的父需求列表
-  const allRequirements = getAllRequirements()
-  
-  // 根据当前类型获取可选的父需求
-  const getParentOptions = () => {
-    switch (formData.type) {
-      case "SR":
-        return allRequirements.filter(r => r.type === "IR")
-      case "AR":
-        return allRequirements.filter(r => r.type === "SR")
-      default:
-        return []
-    }
-  }
-
-  const parentOptions = getParentOptions()
   const showParentSelect = formData.type === "SR" || formData.type === "AR"
+
+  React.useEffect(() => {
+    if (!open || !showParentSelect) {
+      setParentOptions([])
+      return
+    }
+
+    const parentType = formData.type === "SR" ? "IR" : "SR"
+    listRequirements({ type: parentType, page: 1, pageSize: 1000 })
+      .then((result) => setParentOptions(result.list))
+      .catch((error) => {
+        console.error("加载父需求列表失败", error)
+        setParentOptions([])
+      })
+  }, [formData.type, open, showParentSelect])
   const showTypeSelect = !defaultType // 只有在概览页面新增时才显示类型选择
 
   // 初始化表单数据

@@ -24,15 +24,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import {
-  getIterationById,
-  getProjectById,
-  getVersionById,
-  getARDetailsByIterationId,
-  getIterationRequirementCount,
-  getOperationLogs,
-} from "@/lib/mock-data"
-import type { Iteration, Project, Version, ARRequirementDetail, OperationLog } from "@/lib/types"
+import { getIteration, getIterationArs, getIterationStats, getIterationLogs } from "@/lib/api/iterations"
+import { getProject } from "@/lib/api/projects"
+import { getVersion } from "@/lib/api/versions"
+import type { IterationVO } from "@/lib/api/iterations"
+import type { ProjectVO } from "@/lib/api/projects"
+import type { VersionVO } from "@/lib/api/versions"
+import type { RequirementVO } from "@/lib/api/requirements"
 
 const iterStatusConfig: Record<string, { label: string; color: string }> = {
   "进行中": { label: "进行中", color: "bg-blue-100 text-blue-700" },
@@ -89,7 +87,7 @@ function TreeNode({ title, icon, badge, children, defaultOpen = false, level = 0
 }
 
 // AR需求行组件
-function ARRow({ ar }: { ar: ARRequirementDetail }) {
+function ARRow({ ar }: { ar: RequirementVO }) {
   const status = arStatusConfig[ar.status] || arStatusConfig["待分析"]
   return (
     <div
@@ -142,26 +140,51 @@ function StatCard({ title, value, icon, color, subText }: {
 
 export default function IterationDetailPage() {
   const params = useParams()
-  const iterationId = params.id as string
-  const [iteration, setIteration] = React.useState<Iteration | null>(null)
-  const [project, setProject] = React.useState<Project | null>(null)
-  const [version, setVersion] = React.useState<Version | null>(null)
-  const [ars, setArs] = React.useState<ARRequirementDetail[]>([])
-  const [logs, setLogs] = React.useState<OperationLog[]>([])
+  const iterationId = Number(params.id)
+  const [iteration, setIteration] = React.useState<IterationVO | null>(null)
+  const [project, setProject] = React.useState<ProjectVO | null>(null)
+  const [version, setVersion] = React.useState<VersionVO | null>(null)
+  const [ars, setArs] = React.useState<RequirementVO[]>([])
+  const [logs, setLogs] = React.useState<OperationLogVO[]>([])
   const [reqStats, setReqStats] = React.useState({ total: 0, completed: 0, inProgress: 0, blocked: 0 })
   const [logsOpen, setLogsOpen] = React.useState(false)
 
   React.useEffect(() => {
-    const iter = getIterationById(iterationId)
-    if (iter) {
-      setIteration(iter)
-      const proj = getProjectById(iter.projectId)
-      setProject(proj || null)
-      const ver = getVersionById(iter.versionId)
-      setVersion(ver || null)
-      setArs(getARDetailsByIterationId(iterationId))
-      setLogs(getOperationLogs("iteration", iterationId))
-      setReqStats(getIterationRequirementCount(iterationId))
+    async function fetchData() {
+      try {
+        const iter = await getIteration(iterationId)
+        setIteration(iter)
+
+        if (iter.projectId != null) {
+          const projectResult = await getProject(iter.projectId)
+          setProject(projectResult.project || null)
+        }
+
+        if (iter.versionId != null) {
+          const ver = await getVersion(iter.versionId)
+          setVersion(ver || null)
+        }
+
+        const arsResult = await getIterationArs(iterationId)
+        setArs(arsResult)
+
+        const logsResult = await getIterationLogs(iterationId)
+        setLogs(logsResult)
+
+        const statsResult = await getIterationStats(iterationId)
+        setReqStats({
+          total: Number((statsResult as Record<string, unknown>).totalRequirements ?? (statsResult as Record<string, unknown>).total ?? 0),
+          completed: Number((statsResult as Record<string, unknown>).completedRequirements ?? (statsResult as Record<string, unknown>).completed ?? 0),
+          inProgress: Number((statsResult as Record<string, unknown>).inProgressRequirements ?? (statsResult as Record<string, unknown>).inProgress ?? 0),
+          blocked: Number((statsResult as Record<string, unknown>).blockedRequirements ?? (statsResult as Record<string, unknown>).blocked ?? 0),
+        })
+      } catch (error) {
+        console.error("加载迭代详情失败", error)
+      }
+    }
+
+    if (!Number.isNaN(iterationId)) {
+      fetchData()
     }
   }, [iterationId])
 

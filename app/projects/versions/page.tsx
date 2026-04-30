@@ -50,8 +50,10 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
-import { getAllVersions, getIterationsByVersionId, getAllProjects, getProjectById, getVersionRequirementCount } from "@/lib/mock-data"
-import type { Version } from "@/lib/types"
+import { listVersions, createVersion, updateVersion, deleteVersion, getVersionIterations, getVersionStats, exportVersions } from "@/lib/api/versions"
+import { listProjects } from "@/lib/api/projects"
+import type { VersionVO } from "@/lib/api/versions"
+import type { ProjectVO } from "@/lib/api/projects"
 
 const statusConfig: Record<string, { label: string; color: string }> = {
   "进行中": { label: "进行中", color: "bg-blue-100 text-blue-700" },
@@ -60,15 +62,18 @@ const statusConfig: Record<string, { label: string; color: string }> = {
 }
 
 export default function VersionsPage() {
-  const [versions, setVersions] = React.useState<Version[]>([])
+  const [versions, setVersions] = React.useState<VersionVO[]>([])
+  const [projects, setProjects] = React.useState<ProjectVO[]>([])
+  const [iterationCounts, setIterationCounts] = React.useState<Record<number, number>>({})
+  const [statsMap, setStatsMap] = React.useState<Record<number, { total: number }>>({})
+  const [totalCount, setTotalCount] = React.useState(0)
   const [searchText, setSearchText] = React.useState("")
   const [statusFilter, setStatusFilter] = React.useState("all")
   const [projectFilter, setProjectFilter] = React.useState("all")
   const [formOpen, setFormOpen] = React.useState(false)
   const [deleteOpen, setDeleteOpen] = React.useState(false)
-  const [selectedVersion, setSelectedVersion] = React.useState<Version | null>(null)
+  const [selectedVersion, setSelectedVersion] = React.useState<VersionVO | null>(null)
   const [isEdit, setIsEdit] = React.useState(false)
-  const projects = getAllProjects()
 
   // 分页
   const [currentPage, setCurrentPage] = React.useState(1)
@@ -81,16 +86,59 @@ export default function VersionsPage() {
     versionNumber: "",
     startDate: "",
     endDate: "",
-    status: "规划中" as Version["status"],
+    status: "规划中",
     description: "",
   })
 
   React.useEffect(() => {
-    setVersions(getAllVersions())
+    fetchProjects()
+    fetchVersions()
   }, [])
 
+  React.useEffect(() => {
+    fetchVersions()
+  }, [searchText, statusFilter, projectFilter, currentPage, pageSize])
+
+  async function fetchProjects() {
+    try {
+      const result = await listProjects({ page: 1, pageSize: 1000 })
+      setProjects(result.list)
+    } catch (error) {
+      console.error("加载项目失败", error)
+    }
+  }
+
+  async function fetchVersions() {
+    try {
+      const result = await listVersions({
+        page: currentPage,
+        pageSize,
+        keyword: searchText || undefined,
+        status: statusFilter === "all" ? undefined : statusFilter,
+        projectId: projectFilter === "all" ? undefined : Number(projectFilter),
+      })
+      setVersions(result.list)
+      setTotalCount(result.total)
+
+      const [counts, stats] = await Promise.all([
+        Promise.all(result.list.map(async (item) => {
+          const items = await getVersionIterations(item.id)
+          return [item.id, items.length] as const
+        })),
+        Promise.all(result.list.map(async (item) => {
+          const stat = await getVersionStats(item.id)
+          return [item.id, { total: Number((stat as Record<string, unknown>).totalRequirements ?? (stat as Record<string, unknown>).total ?? 0) }] as const
+        })),
+      ])
+      setIterationCounts(Object.fromEntries(counts))
+      setStatsMap(Object.fromEntries(stats))
+    } catch (error) {
+      console.error("加载版本失败", error)
+    }
+  }
+
   // 筛选
-  const filteredVersions = versions.filter((v) => {
+  const filteredVersions = versions
     const matchSearch =
       v.productName.toLowerCase().includes(searchText.toLowerCase()) ||
       v.versionNumber.toLowerCase().includes(searchText.toLowerCase())
@@ -136,47 +184,59 @@ export default function VersionsPage() {
     setFormOpen(true)
   }
 
-  const handleDeleteClick = (version: Version) => {
+  const handleDeleteClick = (version: VersionVO) => {
     setSelectedVersion(version)
     setDeleteOpen(true)
   }
 
-  const handleSave = () => {
-    console.log("保存版本:", formData)
-    setFormOpen(false)
+  const handleSave = async () => {
+    try {
+      const payload = {
+        productName: formData.productName,
+        projectId: Number(formData.projectId),
+        versionNumber: formData.versionNumber,
+        startDate: formData.startDate,
+        endDate: formData.endDate,
+        status: formData.status,
+        description: formData.description,
+      }
+      if (isEdit && selectedVersion) {
+        await updateVersion(selectedVersion.id, payload)
+      } else {
+        await createVersion(payload)
+      }
+      setFormOpen(false)
+      fetchVersions()
+    } catch (error) {
+      console.error("保存版本失败", error)
+      alert("保存失败，请稍后重试")
+    }
   }
 
-  const handleDelete = () => {
-    console.log("删除版本:", selectedVersion?.id)
-    setDeleteOpen(false)
+  const handleDelete = async () => {
+    try {
+      if (selectedVersion) {
+        await deleteVersion(selectedVersion.id)
+        setDeleteOpen(false)
+        fetchVersions()
+      }
+    } catch (error) {
+      console.error("删除版本失败", error)
+      alert("删除失败，请稍后重试")
+    }
   }
 
-  const handleExport = () => {
-    const headers = ["版本号", "产品名", "关联项目", "开始时间", "结束时间", "迭代数", "需求数", "状态"]
-    const rows = filteredVersions.map((v) => {
-      const project = getProjectById(v.projectId)
-      const iterations = getIterationsByVersionId(v.id)
-      const reqCount = getVersionRequirementCount(v.id)
-      return [
-        v.versionNumber,
-        v.productName,
-        project?.code || "-",
-        v.startDate,
-        v.endDate,
-        iterations.length.toString(),
-        reqCount.total.toString(),
-        v.status,
-      ]
-    })
-    const csvContent =
-      "\uFEFF" + headers.join(",") + "\n" + rows.map((row) => row.join(",")).join("\n")
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8" })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement("a")
-    link.href = url
-    link.download = `版本列表_${new Date().toISOString().split("T")[0]}.csv`
-    link.click()
-    URL.revokeObjectURL(url)
+  const handleExport = async () => {
+    try {
+      await exportVersions({
+        projectId: projectFilter === "all" ? undefined : Number(projectFilter),
+        status: statusFilter === "all" ? undefined : statusFilter,
+        keyword: searchText || undefined,
+      })
+    } catch (error) {
+      console.error("导出版本失败", error)
+      alert("导出失败，请稍后重试")
+    }
   }
 
   return (
@@ -244,7 +304,7 @@ export default function VersionsPage() {
               <RotateCcw className="size-4 mr-1" />
               重置
             </Button>
-            <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
+            <Button size="sm" className="bg-blue-600 hover:bg-blue-700" onClick={fetchVersions}>
               <Search className="size-4 mr-1" />
               查询
             </Button>
@@ -278,9 +338,9 @@ export default function VersionsPage() {
             </TableHeader>
             <TableBody>
               {paginatedVersions.map((version) => {
-                const project = getProjectById(version.projectId)
-                const iterations = getIterationsByVersionId(version.id)
-                const reqCount = getVersionRequirementCount(version.id)
+                const project = projects.find((p) => p.id === version.projectId)
+                const iterationCount = iterationCounts[version.id] || 0
+                const reqCount = statsMap[version.id] || { total: 0 }
                 const status = statusConfig[version.status] || statusConfig["规划中"]
                 return (
                   <TableRow key={version.id} className="hover:bg-gray-50">
@@ -458,7 +518,7 @@ export default function VersionsPage() {
               <Label>状态</Label>
               <Select
                 value={formData.status}
-                onValueChange={(v) => setFormData({ ...formData, status: v as Version["status"] })}
+                onValueChange={(v) => setFormData({ ...formData, status: v })}
               >
                 <SelectTrigger>
                   <SelectValue />

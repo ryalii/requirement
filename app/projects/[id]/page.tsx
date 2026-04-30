@@ -43,7 +43,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { getProject, getProjectMembers, getProjectLogs, getProjectTree } from "@/lib/api/projects"
+import { getProject, getProjectMembers, getProjectLogs, getProjectTree, addProjectMember, removeProjectMember } from "@/lib/api/projects"
 import type { ProjectDetailVO, ProjectMemberVO, OperationLogVO } from "@/lib/api/projects"
 
 const projectStatusConfig: Record<string, { label: string; color: string }> = {
@@ -549,18 +549,20 @@ export default function ProjectDetailPage() {
             </Button>
             <Button
               className="bg-blue-600 hover:bg-blue-700"
-              onClick={() => {
+              onClick={async () => {
                 if (newMember.name.trim()) {
-                  const newMemberData: ProjectMember = {
-                    id: `member-${Date.now()}`,
-                    projectId: projectId,
-                    name: newMember.name,
-                    email: newMember.email || undefined,
-                    role: newMember.role,
+                  try {
+                    const added = await addProjectMember(Number(projectId), {
+                      name: newMember.name,
+                      email: newMember.email || undefined,
+                      role: newMember.role,
+                    })
+                    setMembers([...members, added])
+                    setAddMemberOpen(false)
+                    setNewMember({ name: "", email: "", role: "前端开发" })
+                  } catch (err: unknown) {
+                    alert(err instanceof Error ? err.message : "添加成员失败")
                   }
-                  setMembers([...members, newMemberData])
-                  setAddMemberOpen(false)
-                  setNewMember({ name: "", email: "", role: "前端开发" })
                 }
               }}
               disabled={!newMember.name.trim()}
@@ -584,10 +586,15 @@ export default function ProjectDetailPage() {
             <AlertDialogCancel>取消</AlertDialogCancel>
             <AlertDialogAction
               className="bg-red-600 hover:bg-red-700"
-              onClick={() => {
+              onClick={async () => {
                 if (memberToDelete) {
-                  setMembers(members.filter(m => m.id !== memberToDelete.id))
-                  setMemberToDelete(null)
+                  try {
+                    await removeProjectMember(Number(projectId), memberToDelete.id)
+                    setMembers(members.filter(m => m.id !== memberToDelete.id))
+                    setMemberToDelete(null)
+                  } catch (err: unknown) {
+                    alert(err instanceof Error ? err.message : "删除成员失败")
+                  }
                 }
               }}
             >

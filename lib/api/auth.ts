@@ -35,6 +35,10 @@ export function getToken(): string | null {
   return localStorage.getItem('token');
 }
 
+export async function changePassword(oldPassword: string, newPassword: string) {
+  return client.post<void>('/auth/change-password', { oldPassword, newPassword });
+}
+
 export function logout(): void {
   localStorage.removeItem('token');
   window.location.href = '/login';

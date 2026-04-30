@@ -31,11 +31,13 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { toast } from "sonner"
 import { DecomposeDialog } from "@/components/decompose-dialog"
 import { ConvertToIRDialog } from "@/components/convert-to-ir-dialog"
 import { RequirementHistoryDialog } from "@/components/requirement-history-dialog"
 import { RequirementFormDialog } from "@/components/requirement-form-dialog"
 import type { RequirementVO } from "@/lib/api/requirements"
+import { updateRequirement, convertToIr, decompose } from "@/lib/api/requirements"
 
 interface RequirementsTableProps {
   requirements: RequirementVO[]
@@ -98,22 +100,46 @@ export function RequirementsTable({
     setEditOpen(true)
   }
 
-  const handleDecomposeSave = (items: { id: string; name: string; description: string; priority: string }[]) => {
-    console.log("保存拆解结果:", items)
-    alert(`成功拆解为 ${items.length} 个 ${targetType} 需求`)
-  }
-
-  const handleConvertSave = (data: { name: string; description: string; priority: string; expectedDate: string }) => {
-    console.log("转换为IR:", data)
-    alert(`成功将 ${selectedRequirement?.code} 转换为 IR 需求`)
-  }
-
-  const handleEditSave = (data: Partial<RequirementVO>) => {
-    console.log("保存编辑:", data)
-    if (onUpdate && data.id) {
-      onUpdate(data as Requirement)
+  const handleDecomposeSave = async (items: { id: string; name: string; description: string; priority: string }[]) => {
+    if (!selectedRequirement) return
+    try {
+      await decompose(selectedRequirement.id, { items })
+      toast.success(`成功拆解为 ${items.length} 个 ${targetType} 需求`)
+      setDecomposeOpen(false)
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "拆解失败")
     }
-    alert("需求已更新")
+  }
+
+  const handleConvertSave = async (data: { name: string; description: string; priority: string; expectedDate: string }) => {
+    if (!selectedRequirement) return
+    try {
+      await convertToIr(selectedRequirement.id, data)
+      toast.success(`成功将 ${selectedRequirement.code} 转换为 IR 需求`)
+      setConvertOpen(false)
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "转换失败")
+    }
+  }
+
+  const handleEditSave = async (data: Partial<RequirementVO>) => {
+    try {
+      const body = {
+        name: data.name,
+        customer: data.customer,
+        project: data.project,
+        expectedDate: data.expectedDate,
+        status: data.status,
+        priority: data.priority,
+        description: data.description,
+      }
+      await updateRequirement(data.id as number, body)
+      if (onUpdate && data) onUpdate(data as RequirementVO)
+      setEditOpen(false)
+      toast.success("需求已更新")
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "更新失败")
+    }
   }
 
   // 获取上级需求信息（使用VO中的parentCode/parentType字段）

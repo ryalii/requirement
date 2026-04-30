@@ -91,7 +91,18 @@ function RequirementsContent() {
 
   const handleCreate = async (data: Record<string, unknown>) => {
     try {
-      await createRequirement(data as any)
+      const parentId = data.parentId ? Number(data.parentId) : undefined
+      await createRequirement({
+        name: data.name as string,
+        type: data.type as string,
+        customer: data.customer as string,
+        project: data.project as string | undefined,
+        expectedDate: data.expectedDate as string,
+        status: data.status as string | undefined,
+        priority: data.priority as string | undefined,
+        description: data.description as string | undefined,
+        parentId,
+      })
       setCreateDialogOpen(false)
       fetchRequirements()
     } catch (err: unknown) {
@@ -263,6 +274,7 @@ function RequirementsContent() {
               requirements={requirements}
               onDelete={handleDelete}
               filterType={typeFromUrl || undefined}
+              onUpdate={() => fetchRequirements()}
             />
 
             <div className="flex items-center justify-between bg-white px-6 py-4 rounded-lg border">

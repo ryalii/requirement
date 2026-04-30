@@ -30,7 +30,7 @@ interface RequirementFormDialogProps {
   mode: "create" | "edit"
   defaultType?: RequirementType // 默认需求类型（从特定类型页面新增时使用）
   requirement?: Requirement | null // 编辑时传入的需求数据
-  onSave: (data: Partial<Requirement>) => void
+  onSave: (data: Partial<Requirement>) => Promise<void> | void
 }
 
 export function RequirementFormDialog({
@@ -144,17 +144,18 @@ export function RequirementFormDialog({
     }
 
     setSaving(true)
-    // 模拟保存延迟
-    await new Promise(resolve => setTimeout(resolve, 500))
-    
-    onSave({
-      ...formData,
-      id: requirement?.id || `${formData.type.toLowerCase()}-${Date.now()}`,
-      createdAt: requirement?.createdAt || new Date().toISOString().split("T")[0],
-    })
-    
-    setSaving(false)
-    onOpenChange(false)
+    try {
+      await onSave({
+        ...formData,
+        id: requirement?.id || `${formData.type.toLowerCase()}-${Date.now()}`,
+        parentId: formData.parentId ? Number(formData.parentId) : undefined,
+        createdAt: requirement?.createdAt || new Date().toISOString().split("T")[0],
+      })
+    } catch {
+      // onSave handles its own error alert
+    } finally {
+      setSaving(false)
+    }
   }
 
   const dialogTitle = mode === "create" 

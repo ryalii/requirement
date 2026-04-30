@@ -60,8 +60,10 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
-import { getRequirement, getRequirementTree, getAncestors } from "@/lib/api/requirements"
+import { getRequirement, getRequirementTree, getAncestors, updateRequirement, deleteRequirement } from "@/lib/api/requirements"
 import type { RequirementVO } from "@/lib/api/requirements"
+import { createTask } from "@/lib/api/tasks"
+import type { TaskCreateRequest } from "@/lib/api/tasks"
 
 // 默认配置，用于未知类型的回退
 const defaultTypeConfig = {
@@ -239,10 +241,22 @@ function ConvertToTaskDialog({
       return
     }
     setSaving(true)
-    await new Promise(resolve => setTimeout(resolve, 500))
-    setSaving(false)
-    onOpenChange(false)
-    alert("任务创建成功！")
+    try {
+      await createTask({
+        name: requirement.name,
+        type: "需求",
+        creator: "管理员",
+        assignee,
+        deadline,
+        relatedRequirementId: requirement.id,
+      } as TaskCreateRequest)
+      setSaving(false)
+      onOpenChange(false)
+      alert("任务创建成功！")
+    } catch (err: unknown) {
+      setSaving(false)
+      alert(err instanceof Error ? err.message : "任务创建失败")
+    }
   }
 
   return (
@@ -742,6 +756,15 @@ export default function RequirementDetailPage() {
               variant="outline"
               size="sm"
               className="gap-1 text-red-600 hover:text-red-700 hover:bg-red-50"
+              onClick={async () => {
+                if (!confirm(`确定要删除 ${requirement.code} 吗？`)) return
+                try {
+                  await deleteRequirement(requirement.id)
+                  router.push("/requirements")
+                } catch (err: unknown) {
+                  alert(err instanceof Error ? err.message : "删除失败")
+                }
+              }}
             >
               <Trash2 className="size-4" />
               删除
@@ -831,9 +854,28 @@ export default function RequirementDetailPage() {
         onOpenChange={setEditDialogOpen}
         mode="edit"
         requirement={requirement}
-        onSave={(data) => {
-          console.log("保存需求:", data)
-          setEditDialogOpen(false)
+        onSave={async (data) => {
+          try {
+            const body = {
+              name: data.name,
+              customer: data.customer,
+              project: data.project,
+              expectedDate: data.expectedDate,
+              status: data.status,
+              priority: data.priority,
+              description: data.description,
+            }
+            await updateRequirement(requirement.id, body)
+            setEditDialogOpen(false)
+            const [req, anc] = await Promise.all([
+              getRequirement(requirement.id),
+              getAncestors(requirement.id),
+            ])
+            setRequirement(req)
+            setAncestors(anc)
+          } catch (err: unknown) {
+            alert(err instanceof Error ? err.message : "更新失败")
+          }
         }}
       />
 

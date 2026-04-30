@@ -11,6 +11,7 @@ import {
   LogOut, Settings, Key, User,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { changePassword } from "@/lib/api/auth"
 import { Button } from "@/components/ui/button"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -24,6 +25,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Navbar } from "@/components/navbar"
 import { Sidebar } from "@/components/sidebar"
+import { Toaster } from "@/components/ui/sonner"
 
 interface MenuItem {
   title: string
@@ -116,9 +118,14 @@ function ChangePasswordDialog({ open, onOpenChange }: { open: boolean; onOpenCha
     if (newPassword !== confirmPassword) { alert("两次输入的新密码不一致"); return }
     if (newPassword.length < 6) { alert("新密码长度不能少于6位"); return }
     setSaving(true)
-    await new Promise(resolve => setTimeout(resolve, 500))
-    setSaving(false); setOldPassword(""); setNewPassword(""); setConfirmPassword(""); onOpenChange(false)
-    alert("密码修改成功！")
+    try {
+      await changePassword(oldPassword, newPassword)
+      setSaving(false); setOldPassword(""); setNewPassword(""); setConfirmPassword(""); onOpenChange(false)
+      alert("密码修改成功！")
+    } catch (err: unknown) {
+      setSaving(false)
+      alert(err instanceof Error ? err.message : "密码修改失败")
+    }
   }
 
   return (
@@ -185,6 +192,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
       </footer>
 
       <ChangePasswordDialog open={changePasswordOpen} onOpenChange={setChangePasswordOpen} />
+      <Toaster />
     </div>
   )
 }

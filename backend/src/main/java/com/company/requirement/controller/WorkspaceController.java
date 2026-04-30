@@ -2,12 +2,16 @@ package com.company.requirement.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.company.requirement.common.Result;
+import com.company.requirement.dto.request.WorkItemCreateRequest;
 import com.company.requirement.dto.response.RequirementVO;
 import com.company.requirement.dto.response.TaskVO;
+import com.company.requirement.dto.response.WorkItemVO;
 import com.company.requirement.entity.Requirement;
 import com.company.requirement.entity.Task;
+import com.company.requirement.entity.WorkItem;
 import com.company.requirement.mapper.RequirementMapper;
 import com.company.requirement.mapper.TaskMapper;
+import com.company.requirement.mapper.WorkItemMapper;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -21,10 +25,12 @@ public class WorkspaceController {
 
     private final RequirementMapper requirementMapper;
     private final TaskMapper taskMapper;
+    private final WorkItemMapper workItemMapper;
 
-    public WorkspaceController(RequirementMapper requirementMapper, TaskMapper taskMapper) {
+    public WorkspaceController(RequirementMapper requirementMapper, TaskMapper taskMapper, WorkItemMapper workItemMapper) {
         this.requirementMapper = requirementMapper;
         this.taskMapper = taskMapper;
+        this.workItemMapper = workItemMapper;
     }
 
     @GetMapping("/urgent-requirements")
@@ -56,6 +62,33 @@ public class WorkspaceController {
                         .notIn(Task::getStatus, "已完成", "已关闭")
                         .orderByAsc(Task::getDeadline));
         return Result.success(list.stream().map(this::toTaskVO).collect(Collectors.toList()));
+    }
+
+    @GetMapping("/work-items")
+    public Result<List<WorkItemVO>> getWorkItems() {
+        List<WorkItem> list = workItemMapper.selectList(
+                new LambdaQueryWrapper<WorkItem>()
+                        .orderByAsc(WorkItem::getDate));
+        return Result.success(list.stream().map(this::toWorkItemVO).collect(Collectors.toList()));
+    }
+
+    @PostMapping("/work-items")
+    public Result<WorkItemVO> createWorkItem(@RequestBody WorkItemCreateRequest request) {
+        WorkItem workItem = new WorkItem();
+        workItem.setTitle(request.getTitle());
+        workItem.setDate(request.getDate());
+        workItem.setType(request.getType());
+        workItem.setColor(request.getColor());
+        workItem.setCreator(request.getCreator());
+
+        workItemMapper.insert(workItem);
+        return Result.success(toWorkItemVO(workItem));
+    }
+
+    @DeleteMapping("/work-items/{id}")
+    public Result<Void> deleteWorkItem(@PathVariable Long id) {
+        workItemMapper.deleteById(id);
+        return Result.success(null);
     }
 
     private int priorityScore(String priority) {
@@ -95,6 +128,19 @@ public class WorkspaceController {
             vo.setDaysRemaining(ChronoUnit.DAYS.between(LocalDate.now(), t.getDeadline()));
             vo.setOverdue(true);
         }
+        return vo;
+    }
+
+    private WorkItemVO toWorkItemVO(WorkItem w) {
+        WorkItemVO vo = new WorkItemVO();
+        vo.setId(w.getId());
+        vo.setTitle(w.getTitle());
+        vo.setDate(w.getDate());
+        vo.setType(w.getType());
+        vo.setColor(w.getColor());
+        vo.setCreator(w.getCreator());
+        vo.setCreatedAt(w.getCreatedAt());
+        vo.setUpdatedAt(w.getUpdatedAt());
         return vo;
     }
 }

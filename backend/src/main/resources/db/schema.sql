@@ -156,7 +156,23 @@ CREATE TABLE `t_task_history` (
     CONSTRAINT `fk_task_history_task` FOREIGN KEY (`task_id`) REFERENCES `t_task`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='任务历史';
 
--- 9. t_project_member
+-- 9. t_work_item
+CREATE TABLE `t_work_item` (
+    `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
+    `title` VARCHAR(200) NOT NULL COMMENT '工作安排标题',
+    `date` DATE NOT NULL COMMENT '工作日期',
+    `type` VARCHAR(10) NOT NULL COMMENT 'meeting/task/review',
+    `color` VARCHAR(20) NOT NULL COMMENT '颜色标识',
+    `creator` VARCHAR(50) NOT NULL COMMENT '创建人',
+    `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `deleted` TINYINT(1) DEFAULT 0,
+    INDEX `idx_date` (`date`),
+    INDEX `idx_type` (`type`),
+    INDEX `idx_creator` (`creator`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='工作安排';
+
+-- 10. t_project_member
 CREATE TABLE `t_project_member` (
     `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
     `project_id` BIGINT NOT NULL,
@@ -168,7 +184,7 @@ CREATE TABLE `t_project_member` (
     CONSTRAINT `fk_member_project` FOREIGN KEY (`project_id`) REFERENCES `t_project`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='项目成员';
 
--- 10. t_operation_log
+-- 11. t_operation_log
 CREATE TABLE `t_operation_log` (
     `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
     `target_type` VARCHAR(20) NOT NULL COMMENT 'project/version/iteration',

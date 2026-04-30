@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Sparkles, Loader2, ArrowRight } from "lucide-react"
+import { Sparkles, ArrowRight } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -46,7 +46,6 @@ export function ConvertToIRDialog({
   const [description, setDescription] = React.useState("")
   const [priority, setPriority] = React.useState<RequirementPriority>("中")
   const [expectedDate, setExpectedDate] = React.useState("")
-  const [isGenerating, setIsGenerating] = React.useState(false)
 
   React.useEffect(() => {
     if (open && lmtRequirement) {
@@ -57,13 +56,7 @@ export function ConvertToIRDialog({
     }
   }, [open, lmtRequirement])
 
-  const handleAIGenerate = async () => {
-    setIsGenerating(true)
-    
-    // 模拟AI生成延迟
-    await new Promise((resolve) => setTimeout(resolve, 1500))
-    
-    // 模拟AI优化后的内容
+  const handleAIGenerate = () => {
     setName(`[IR] ${lmtRequirement?.name}`)
     setDescription(
       `【需求背景】\n基于市场需求"${lmtRequirement?.name}"，需要进行系统化的需求分析和规划。\n\n` +
@@ -72,8 +65,6 @@ export function ConvertToIRDialog({
       `【约束条件】\n1. 技术栈：符合公司技术规范\n2. 安全要求：通过安全审计`
     )
     setPriority(lmtRequirement?.priority || "中")
-    
-    setIsGenerating(false)
   }
 
   const handleSave = () => {
@@ -132,20 +123,10 @@ export function ConvertToIRDialog({
             <Button
               variant="outline"
               onClick={handleAIGenerate}
-              disabled={isGenerating}
               className="gap-2"
             >
-              {isGenerating ? (
-                <>
-                  <Loader2 className="size-4 animate-spin" />
-                  AI 优化中...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="size-4 text-amber-500" />
-                  AI 辅助优化
-                </>
-              )}
+              <Sparkles className="size-4 text-amber-500" />
+              AI 辅助优化
             </Button>
           </div>
 

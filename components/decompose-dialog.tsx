@@ -47,7 +47,6 @@ export function DecomposeDialog({
   onSave,
 }: DecomposeDialogProps) {
   const [items, setItems] = React.useState<DecomposeItem[]>([])
-  const [isGenerating, setIsGenerating] = React.useState(false)
 
   const sourceType = targetType === "SR" ? "IR" : "SR"
   const targetLabel = targetType === "SR" ? "系统需求(SR)" : "软件需求(AR)"
@@ -58,14 +57,8 @@ export function DecomposeDialog({
     }
   }, [open])
 
-  const handleAIGenerate = async () => {
-    setIsGenerating(true)
-    
-    // 模拟AI生成延迟
-    await new Promise((resolve) => setTimeout(resolve, 1500))
-    
-    // 模拟AI生成的拆解结果
-    const aiGeneratedItems: DecomposeItem[] = targetType === "SR" 
+  const handleAIGenerate = () => {
+    const aiGeneratedItems: DecomposeItem[] = targetType === "SR"
       ? [
           {
             id: `temp-${Date.now()}-1`,
@@ -106,9 +99,8 @@ export function DecomposeDialog({
             priority: "低",
           },
         ]
-    
+
     setItems(aiGeneratedItems)
-    setIsGenerating(false)
   }
 
   const handleAddItem = () => {
@@ -173,20 +165,10 @@ export function DecomposeDialog({
             <Button
               variant="outline"
               onClick={handleAIGenerate}
-              disabled={isGenerating}
               className="gap-2"
             >
-              {isGenerating ? (
-                <>
-                  <Loader2 className="size-4 animate-spin" />
-                  AI 分析中...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="size-4 text-amber-500" />
-                  AI 辅助拆解
-                </>
-              )}
+              <Sparkles className="size-4 text-amber-500" />
+              AI 辅助拆解
             </Button>
             <Button variant="outline" size="sm" onClick={handleAddItem} className="gap-1">
               <Plus className="size-4" />

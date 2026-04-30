@@ -71,6 +71,30 @@ public class AuthController {
         return Result.success(userInfo);
     }
 
+    @PostMapping("/change-password")
+    public Result<Void> changePassword(HttpServletRequest request, @RequestBody ChangePasswordRequest body) {
+        if (body.getOldPassword() == null || body.getNewPassword() == null) {
+            return Result.badRequest("旧密码和新密码不能为空");
+        }
+        if (body.getNewPassword().length() < 6) {
+            return Result.badRequest("新密码长度不能少于6位");
+        }
+
+        Long userId = (Long) request.getAttribute("userId");
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            return Result.notFound("用户不存在");
+        }
+
+        if (!BCrypt.checkpw(body.getOldPassword(), user.getPassword())) {
+            return Result.error(400, "旧密码错误");
+        }
+
+        user.setPassword(BCrypt.hashpw(body.getNewPassword()));
+        userMapper.updateById(user);
+        return Result.success(null);
+    }
+
     public static class LoginRequest {
         private String email;
         private String password;
@@ -79,5 +103,15 @@ public class AuthController {
         public void setEmail(String email) { this.email = email; }
         public String getPassword() { return password; }
         public void setPassword(String password) { this.password = password; }
+    }
+
+    public static class ChangePasswordRequest {
+        private String oldPassword;
+        private String newPassword;
+
+        public String getOldPassword() { return oldPassword; }
+        public void setOldPassword(String oldPassword) { this.oldPassword = oldPassword; }
+        public String getNewPassword() { return newPassword; }
+        public void setNewPassword(String newPassword) { this.newPassword = newPassword; }
     }
 }

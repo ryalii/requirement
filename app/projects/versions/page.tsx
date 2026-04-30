@@ -137,23 +137,7 @@ export default function VersionsPage() {
     }
   }
 
-  // 筛选
-  const filteredVersions = versions
-    const matchSearch =
-      v.productName.toLowerCase().includes(searchText.toLowerCase()) ||
-      v.versionNumber.toLowerCase().includes(searchText.toLowerCase())
-    const matchStatus = statusFilter === "all" || v.status === statusFilter
-    const matchProject = projectFilter === "all" || v.projectId === projectFilter
-    return matchSearch && matchStatus && matchProject
-  })
-
-  // 分页
-  const totalCount = filteredVersions.length
-  const totalPages = Math.ceil(totalCount / pageSize)
-  const paginatedVersions = filteredVersions.slice(
-    (currentPage - 1) * pageSize,
-    currentPage * pageSize
-  )
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize))
 
   const handleAdd = () => {
     setIsEdit(false)
@@ -337,7 +321,7 @@ export default function VersionsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {paginatedVersions.map((version) => {
+              {versions.map((version) => {
                 const project = projects.find((p) => p.id === version.projectId)
                 const iterationCount = iterationCounts[version.id] || 0
                 const reqCount = statsMap[version.id] || { total: 0 }
